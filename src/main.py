@@ -17,12 +17,16 @@ from datetime import datetime, date
 from pathlib import Path
 
 # 添加 src 目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
+SRC_DIR = Path(__file__).parent
+sys.path.insert(0, str(SRC_DIR))
 
-from sample_data import SAMPLE_EVENTS
+# 项目根目录
+PROJECT_ROOT = SRC_DIR.parent
+
 from data_pipeline import run_pipeline, save_parsed
 from transit_engine import run_transit_engine, save_day_schedules
 from conflict_engine import run_conflict_engine, save_conflicts
+from ima_importer import scan_and_import
 from config import (
     ORIGIN_ADDRESS,
     ORIGIN_LAT,
@@ -176,14 +180,50 @@ def print_summary(week_schedule: dict):
     print(f"{'=' * 60}\n")
 
 
+def load_real_events() -> list:
+    """
+    从项目根目录的 ima_notes 文件夹加载真实笔记数据。
+
+    若 ima_notes 不存在，自动创建空文件夹并打印醒目提示。
+    返回标准活动记录列表，若无可解析笔记则退出程序。
+    """
+    notes_dir = PROJECT_ROOT / "ima_notes"
+
+    if not notes_dir.exists():
+        notes_dir.mkdir(parents=True, exist_ok=True)
+        print("\n" + "=" * 64)
+        print("\033[93m  ⚠ [提示] ima_notes 文件夹已自动创建。\033[0m")
+        print("\033[93m  请将真实的 IMA 相亲笔记 (.md / .txt) 放入该文件夹：\033[0m")
+        print(f"\033[93m  {notes_dir.absolute()}\033[0m")
+        print("=" * 64 + "\n")
+        sys.exit(0)
+
+    print(f"\n📂 扫描笔记目录: {notes_dir.absolute()}")
+    events = scan_and_import(str(notes_dir))
+
+    if not events:
+        print("\n" + "=" * 64)
+        print("\033[91m  ❌ [错误] ima_notes 文件夹中未找到可解析的笔记文件。\033[0m")
+        print("\033[93m  请将真实的 IMA 相亲笔记 (.md / .txt) 放入该文件夹后重试。\033[0m")
+        print(f"\033[93m  {notes_dir.absolute()}\033[0m")
+        print("=" * 64 + "\n")
+        sys.exit(0)
+
+    print(f"✅ 成功解析 {len(events)} 条真实活动记录\n")
+    return events
+
+
 def main():
     """主编排入口"""
     print("╔══════════════════════════════════════════════════════╗")
-    print("║     周末交友战术指挥舱 · 数据处理管道 v1.0          ║")
+    print("║     周末交友战术指挥舱 · 数据处理管道 v2.0          ║")
     print("╚══════════════════════════════════════════════════════╝")
 
+    # ── Phase 0: 加载真实笔记数据 ──
+    real_events = load_real_events()
+
     # ── Phase 1: 数据管线 ──
-    parsed = run_pipeline(SAMPLE_EVENTS)
+    parsed = run_pipeline(real_events)
     save_parsed(parsed)
 
     # ── Phase 2: 转场矩阵 ──

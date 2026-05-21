@@ -6,7 +6,7 @@
 - 数据管线：`src/main.py` → `output/week_schedule.json` → `index.html`
 - 本地预览：`python -m http.server 8080`（项目根目录）
 
-## 当前版本：v5.1 无损还原 + 自动部署
+## 当前版本：v6.0 真实数据 + 移动端响应式
 - A区(左50%)：Master-Detail布局 — 全局模式100%Grid / 分日模式50%Detail+50%List
 - B区(右上50%)：Leaflet 地图 + 编号图钉/热力圈
 - C区(右下50%)：上66.6% C4面板(90%冲突对比+10%气象限行) + 下33.3%甘特图 C1/C2/C3
@@ -15,6 +15,8 @@
 - A区Detail面板：`full_raw_text` 无损全文渲染 + `images` 图片画廊
 - 自动部署：`auto_deploy.bat` → 管线→Git推送→关机
 - GitHub仓库：`https://github.com/independent-all/workbuddy--.git`
+- **数据源**：`src/main.py` 已彻底移除 sample_data 依赖，从 `ima_notes/` 加载真实 `.md`/`.txt` 笔记
+- **移动端**：header 切换按钮 + auto-detect(<768px) + `.mobile-mode` CSS 垂直堆叠 + 甘特图横向滑动
 
 ## 数据 Schema
 - 输出格式：`week_schedule.json` (Schema v1.0)

@@ -646,20 +646,106 @@ body {
 .leaflet-popup-close-button { color: var(--muted)!important; }
 .leaflet-control-zoom a { background: var(--surface)!important; color: var(--text)!important; border-color: var(--border)!important; }
 
-/* 响应式 */
-@media (max-width: 768px) {
-  .main { flex-direction: column; }
-  .zone-a { width: 100%; height: 50%; }
-  .zone-bc { width: 100%; height: 50%; }
-  .zone-b { height: 50%; }
-  .zone-c { height: 50%; }
-  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-  .zone-a-body.day-mode .a-detail { width: 40%; }
-  .zone-a-body.day-mode .a-list { width: 60%; }
+/* ── 切换按钮 ── */
+.view-toggle {
+  margin-left: auto; margin-right: 8px;
+  font-size: 12px; font-weight: 500;
+  padding: 4px 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--accent); cursor: pointer;
+  font-family: var(--font); transition: all var(--transition);
+  white-space: nowrap; letter-spacing: 0.5px;
 }
-@media (max-width: 480px) {
-  .gallery-grid { grid-template-columns: 1fr; }
+.view-toggle:hover { background: var(--border); }
+.view-toggle.mobile-active { background: rgba(96,165,250,0.12); border-color: var(--accent); }
+
+/* ============================================================
+   移动端响应式装甲 — .mobile-mode 专属
+   仅在 <body class="mobile-mode"> 时激活，不影响PC布局
+   ============================================================ */
+body.mobile-mode { overflow-y: auto; }
+body.mobile-mode .main {
+  flex-direction: column;
+  overflow-y: visible;
 }
+
+/* ── A区 100%宽，可滚动 ── */
+body.mobile-mode .zone-a {
+  width: 100%; min-height: auto; flex-shrink: 0;
+}
+/* 分日模式：Detail + List 上下堆叠 */
+body.mobile-mode .zone-a-body.day-mode {
+  flex-direction: column;
+}
+body.mobile-mode .zone-a-body.day-mode .a-detail {
+  width: 100%; max-height: 60vh; display: flex;
+  border-right: none; border-bottom: 1px solid var(--border);
+}
+body.mobile-mode .zone-a-body.day-mode .a-list {
+  width: 100%; max-height: 50vh;
+}
+body.mobile-mode .zone-a-body.global-mode .a-list { width: 100%; }
+body.mobile-mode .gallery-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+body.mobile-mode .gallery-grid.single-col { grid-template-columns: 1fr; }
+
+/* ── BC区 100%宽 ── */
+body.mobile-mode .zone-bc { width: 100%; flex-shrink: 0; }
+
+/* ── B区地图 100%宽 + 固定高度 ── */
+body.mobile-mode .zone-b {
+  width: 100%; height: 380px; flex-shrink: 0;
+  min-height: 380px;
+}
+
+/* ── C区：甘特图防挤压 + C4上下堆叠 ── */
+body.mobile-mode .zone-c {
+  height: auto; min-height: 420px; flex-shrink: 0;
+}
+/* C4冲突+气象面板上下堆叠 */
+body.mobile-mode .c4-panel {
+  flex-direction: column; min-height: 180px;
+}
+body.mobile-mode .c4-conflict {
+  width: 100%; min-height: 100px; max-height: 200px;
+}
+body.mobile-mode .c4-weather {
+  width: 100%; flex-direction: row; flex-wrap: wrap;
+  justify-content: center; gap: 8px; padding: 6px 8px;
+  border-left: none; border-top: 1px solid var(--border);
+}
+body.mobile-mode .c4w-divider { display: none; }
+body.mobile-mode .c4w-icon { font-size: 22px; }
+body.mobile-mode .c4w-temp { font-size: 10px; }
+body.mobile-mode .c4w-temp br { display: none; }
+body.mobile-mode .c4w-temp::after { content: ' '; }
+
+/* 甘特图横向滑动保护 */
+body.mobile-mode .gantt-container {
+  min-width: 800px;
+}
+body.mobile-mode .gantt-scroll {
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 移动端header紧凑 */
+body.mobile-mode .header h1 { font-size: 12px; }
+body.mobile-mode .header .h-badge { font-size: 9px; padding: 1px 6px; }
+body.mobile-mode .header .h-origin { font-size: 9px; }
+
+/* 移动端统计通栏紧凑 */
+body.mobile-mode .stats-ribbon { gap: 8px; padding: 0 8px; }
+body.mobile-mode .sr-item .sr-val { font-size: 11px; }
+body.mobile-mode .sr-divider:nth-of-type(3) { display: none; }
+body.mobile-mode .sr-bar-lbl { font-size: 9px; }
+
+/* 移动端甘特块放大触控区 */
+body.mobile-mode .gantt-block { min-height: 32px; }
+
+/* 移动端地图图例缩小 */
+body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 </style>
 </head>
 <body>
@@ -668,6 +754,7 @@ body {
   <h1>🎯 周末交友战术指挥舱</h1>
   <span class="h-badge" id="h-week"></span>
   <span class="h-badge" id="h-gen"></span>
+  <button class="view-toggle" id="view-toggle" title="切换手机/PC视图">📱 手机视图</button>
   <span class="h-origin"><span class="dot"></span>原点：朝阳区南平里</span>
 </header>
 
@@ -786,6 +873,35 @@ let mapMarkerMap = {};
 let conflictIdSet = new Set();
 let conflictMap = {};
 let selectedActivityId = null;  // A区Detail当前选中的活动ID
+let isMobileMode = false;       // 手机模式标记
+
+/* ===== 手机/PC 视图切换 ===== */
+function setupViewToggle() {
+  const toggleBtn = document.getElementById('view-toggle');
+
+  // 自动检测：屏幕<768px默认进入手机模式
+  if (window.innerWidth < 768) {
+    isMobileMode = true;
+    document.body.classList.add('mobile-mode');
+    toggleBtn.textContent = '💻 PC视图';
+    toggleBtn.classList.add('mobile-active');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    isMobileMode = !isMobileMode;
+    if (isMobileMode) {
+      document.body.classList.add('mobile-mode');
+      toggleBtn.textContent = '💻 PC视图';
+      toggleBtn.classList.add('mobile-active');
+    } else {
+      document.body.classList.remove('mobile-mode');
+      toggleBtn.textContent = '📱 手机视图';
+      toggleBtn.classList.remove('mobile-active');
+    }
+    // 切换后刷新地图尺寸
+    setTimeout(() => map.invalidateSize(), 300);
+  });
+}
 
 /* ===== 提取所有活动 ===== */
 function getAllActivities() {
@@ -1002,7 +1118,7 @@ function renderPosterCard(a) {
       </div>
       ${a.essence_text ? `<div class="poster-essence">${a.essence_text}</div>` : ''}
       <div class="poster-footer">
-        <a class="poster-link" href="${a.ima_source_url||'#'}" target="_blank" onclick="event.stopPropagation()">📎 IMA笔记</a>
+        ${a.ima_source_url ? `<a class="poster-link" href="${a.ima_source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 IMA笔记</a>` : `<span class="poster-link" style="color:var(--muted);cursor:default;opacity:0.4;">📎 无原始链接</span>`}
         <span class="poster-score ${scCls}">⭐ ${a.value_score||'—'}分</span>
       </div>
     </div>
@@ -1542,6 +1658,7 @@ document.addEventListener('click', function(e) {
 /* ===== 初始化 ===== */
 function init() {
   buildGlobalIdMap();
+  setupViewToggle();
   document.getElementById('h-week').textContent = WEEK_DATA.week||'—';
   document.getElementById('h-gen').textContent = '更新:'+(WEEK_DATA.generated_at||'').slice(0,10);
   setupFilterTabs();
@@ -1556,7 +1673,17 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 200); });
+window.addEventListener('resize', () => {
+  setTimeout(() => {
+    map.invalidateSize();
+    // 如果从大屏切到小屏，但用户未手动切换，依然让布局可滚
+    if (window.innerWidth < 768) {
+      document.body.style.overflowY = 'auto';
+    } else if (!isMobileMode) {
+      document.body.style.overflowY = '';
+    }
+  }, 200);
+});
 </script>
 </body>
 </html>
