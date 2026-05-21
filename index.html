@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>周末交友战术指挥舱 v5.0 — 战术甘特图 + 气象限行</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+/* ============================================================
+   周末交友战术指挥舱 v5.0
+   A区(左50%): Master-Detail 图文海报 + 全局筛选
+   B区(右上50%): 大地图 + 编号图钉
+   C区(右下50%): C4冲突/气象面板(66.6%) + C1/C2/C3甘特图(33.3%)
+   三区 global_id 联动
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e14;
+  --surface: #111820;
+  --surface2: #1a2230;
+  --border: #252d3a;
+  --text: #e0e6f0;
+  --muted: #6b7280;
+  --accent: #60a5fa;
+  --danger: #f43f5e;
+  --success: #22c55e;
+  --gold: #f59e0b;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --transition: 0.2s ease;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh; width: 100vw;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* ===== 顶部栏 ===== */
+.header {
+  height: 44px; min-height: 44px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 12px;
+  z-index: 1000; flex-shrink: 0;
+}
+.header h1 { font-size: 14px; font-weight: 600; letter-spacing: 1px; white-space: nowrap; }
+.header .h-badge {
+  font-size: 10px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 2px 8px; color: var(--muted);
+}
+.header .h-origin {
+  margin-left: auto; font-size: 11px; color: var(--gold);
+  display: flex; align-items: center; gap: 5px;
+}
+.h-origin .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); display: inline-block; }
+
+/* ===== 主布局 ===== */
+.main {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* ─────── A区: 左侧图文总览 (Master-Detail) ─────── */
+.zone-a {
+  width: 50%; min-width: 0;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* ── 筛选 Tab 栏（100%宽度） ── */
+.filter-bar {
+  display: flex; flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.filter-btn {
+  flex: 1; padding: 8px 0; font-size: 12px; font-weight: 500;
+  border: none; background: transparent; color: var(--muted);
+  cursor: pointer; transition: all var(--transition);
+  border-bottom: 2px solid transparent;
+  font-family: var(--font); position: relative;
+}
+.filter-btn:hover { color: var(--text); background: var(--surface2); }
+.filter-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.filter-btn .fc-badge {
+  position: absolute; top: 2px; right: 6px; font-size: 9px;
+  background: var(--surface2); border-radius: 8px; padding: 0 5px;
+  line-height: 14px; color: var(--muted);
+}
+.filter-btn.active .fc-badge { background: rgba(96,165,250,0.15); color: var(--accent); }
+
+/* ── 统计通栏 ── */
+.stats-ribbon {
+  height: 5%; min-height: 38px; max-height: 48px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 16px;
+  overflow: hidden;
+}
+.stats-ribbon .sr-item { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
+.sr-item .sr-val { font-weight: 600; font-size: 13px; }
+.sr-item .sr-lbl { color: var(--muted); font-size: 10px; }
+.sr-divider { width: 1px; height: 18px; background: var(--border); }
+.sr-bar-wrap { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sr-bar-wrap .sr-bar-lbl { font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+.sr-bar-track {
+  height: 6px; width: 100%; max-width: 180px;
+  background: var(--surface2); border-radius: 3px; overflow: hidden;
+  display: flex;
+}
+.sr-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.sr-bar-fill.cold { background: linear-gradient(90deg, #1e3a5f, #3b82f6); }
+.sr-bar-fill.warm { background: linear-gradient(90deg, #92400e, #f59e0b); }
+.sr-bar-count { font-size: 10px; font-weight: 500; min-width: 22px; }
+
+/* ── A区 Master-Detail 主体 ── */
+.zone-a-body {
+  flex: 1; display: flex; overflow: hidden;
+  min-height: 0;
+}
+
+/* 全局模式：Detail隐藏，List 100% */
+.zone-a-body.global-mode .a-detail { display: none; }
+.zone-a-body.global-mode .a-list { width: 100%; }
+
+/* 分日模式：Detail 50% + List 50% */
+.zone-a-body.day-mode .a-detail { display: flex; width: 50%; }
+.zone-a-body.day-mode .a-list { width: 50%; }
+
+/* ── A区 Detail 详情面板（左） ── */
+.a-detail {
+  display: none; flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+.a-detail-scroll {
+  flex: 1; overflow-y: auto; padding: 16px 18px 24px;
+}
+.a-detail-scroll::-webkit-scrollbar { width: 4px; }
+.a-detail-scroll::-webkit-scrollbar-track { background: transparent; }
+.a-detail-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.ad-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--muted); gap: 12px;
+}
+.ad-placeholder .ad-ph-icon { font-size: 48px; opacity: 0.4; }
+.ad-placeholder .ad-ph-text { font-size: 13px; letter-spacing: 1px; }
+
+/* 详情内容 */
+.ad-header {
+  display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px;
+}
+.ad-gid-badge {
+  flex-shrink: 0; width: 48px; height: 54px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1d4ed8 100%);
+  clip-path: polygon(50% 0%, 100% 0%, 100% 78%, 50% 100%, 0% 78%, 0% 0%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 12px rgba(37,99,235,0.5);
+  border: 1.5px solid rgba(255,255,255,0.3);
+}
+.ad-gid-badge .ad-gid-num {
+  font-size: 20px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5); line-height: 1; margin-top: -2px;
+}
+.ad-title-group { flex: 1; min-width: 0; }
+.ad-title {
+  font-size: 20px; font-weight: 700; line-height: 1.3; color: #fff;
+  margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.ad-tone-tag {
+  display: inline-block; font-size: 10px; padding: 3px 12px; border-radius: 10px;
+  font-weight: 500; letter-spacing: 0.5px;
+}
+.ad-tone-tag.cold { background: rgba(30,58,138,0.7); border: 1px solid rgba(59,130,246,0.5); color: #93c5fd; }
+.ad-tone-tag.warm { background: rgba(146,64,14,0.7); border: 1px solid rgba(245,158,11,0.5); color: #fcd34d; }
+.ad-tone-tag.neutral { background: rgba(55,65,81,0.7); border: 1px solid rgba(156,163,175,0.5); color: #d1d5db; }
+
+/* 详情子段 */
+.ad-section { margin-bottom: 18px; }
+.ad-section-title {
+  font-size: 10px; font-weight: 500; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.ad-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px;
+}
+.ad-info-item { display: flex; flex-direction: column; gap: 2px; }
+.ad-info-lbl { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; }
+.ad-info-val { font-size: 14px; font-weight: 500; color: #fff; }
+.ad-info-val.large { font-size: 18px; font-weight: 700; }
+
+.ad-essence {
+  font-size: 13px; line-height: 1.8; color: rgba(255,255,255,0.75);
+  padding: 12px 14px; background: var(--surface2); border-radius: var(--radius);
+  border-left: 3px solid var(--accent);
+}
+.ad-full-text {
+  font-size: 13px; line-height: 1.9; color: rgba(255,255,255,0.82);
+  padding: 14px 16px; background: var(--surface2); border-radius: var(--radius);
+  border-left: 3px solid var(--gold);
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 360px; overflow-y: auto;
+}
+.ad-full-text::-webkit-scrollbar { width: 4px; }
+.ad-full-text::-webkit-scrollbar-track { background: transparent; }
+.ad-full-text::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.ad-images-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px; margin-top: 10px;
+}
+.ad-images-grid img {
+  width: 100%; height: auto; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.ad-images-grid img:hover {
+  transform: scale(1.03); box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.ad-core {
+  font-size: 12px; line-height: 1.6; color: rgba(255,255,255,0.7);
+  padding: 10px 14px; background: var(--surface2); border-radius: var(--radius);
+}
+.ad-score-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: var(--surface2); border-radius: var(--radius);
+}
+.ad-score-big { font-size: 28px; font-weight: 800; }
+.ad-score-big.high { color: var(--success); }
+.ad-score-big.mid { color: var(--gold); }
+.ad-score-big.low { color: var(--danger); }
+.ad-score-breakdown { font-size: 10px; color: var(--muted); line-height: 1.6; }
+.ad-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--accent); text-decoration: none;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.ad-link:hover { background: var(--surface2); }
+
+/* ── A区 List 列表面板（右） ── */
+.a-list { overflow: hidden; display: flex; flex-direction: column; }
+.a-list .gallery-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; scroll-behavior: smooth; }
+.a-list .gallery-scroll::-webkit-scrollbar { width: 4px; }
+.a-list .gallery-scroll::-webkit-scrollbar-track { background: transparent; }
+.a-list .gallery-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+.gallery-grid.single-col { grid-template-columns: 1fr; }
+
+/* ── 海报卡片 ── */
+.poster-card {
+  border-radius: var(--radius);
+  overflow: hidden; position: relative;
+  min-height: 260px; cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  border: 2px solid var(--border);
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.poster-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 1; }
+.poster-card.selected { border-color: var(--accent) !important; box-shadow: 0 0 16px rgba(96,165,250,0.4) !important; }
+
+/* Global ID 徽章 — A区左上角盾牌 */
+.global-id-badge {
+  position: absolute; z-index: 10; top: 10px; left: 10px;
+  width: 34px; height: 38px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1d4ed8 100%);
+  clip-path: polygon(50% 0%, 100% 0%, 100% 78%, 50% 100%, 0% 78%, 0% 0%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.5);
+  border: 1.5px solid rgba(255,255,255,0.3);
+}
+.global-id-badge .gid-num {
+  font-size: 15px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  line-height: 1; margin-top: -2px;
+}
+
+.poster-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  transition: transform 0.4s ease;
+}
+.poster-card:hover .poster-bg { transform: scale(1.04); }
+
+.poster-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(
+    180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 30%,
+    rgba(0,0,0,0.65) 70%, rgba(0,0,0,0.92) 100%
+  );
+}
+
+.poster-content {
+  position: relative; z-index: 2;
+  padding: 16px 14px 14px;
+  color: #fff; display: flex; flex-direction: column; gap: 8px;
+}
+
+.poster-tone {
+  position: absolute; z-index: 3; top: 12px; right: 12px;
+  font-size: 10px; padding: 3px 10px; border-radius: 10px;
+  font-weight: 500; backdrop-filter: blur(6px);
+  letter-spacing: 0.5px;
+}
+.poster-tone.tone-cold { background: rgba(30,58,138,0.7); border: 1px solid rgba(59,130,246,0.5); color: #93c5fd; }
+.poster-tone.tone-warm { background: rgba(146,64,14,0.7); border: 1px solid rgba(245,158,11,0.5); color: #fcd34d; }
+.poster-tone.tone-neutral { background: rgba(55,65,81,0.7); border: 1px solid rgba(156,163,175,0.5); color: #d1d5db; }
+
+.poster-name {
+  font-size: 16px; font-weight: 600; line-height: 1.3;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  letter-spacing: 0.5px; padding-left: 40px;
+}
+.poster-meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px;
+  font-size: 11px; opacity: 0.9;
+}
+.poster-meta .pm-item { display: flex; gap: 3px; }
+.poster-meta .pm-lbl { opacity: 0.55; font-size: 10px; }
+.poster-meta .pm-val { font-weight: 500; }
+
+.poster-details { display: flex; flex-direction: column; gap: 2px; }
+.poster-detail-row {
+  display: flex; align-items: flex-start; gap: 5px;
+  font-size: 10.5px; line-height: 1.4; padding: 4px 7px;
+  border-radius: 4px; background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(2px);
+}
+.poster-detail-icon { flex-shrink: 0; font-size: 11px; }
+.poster-detail-text { flex: 1; opacity: 0.85; }
+
+.poster-essence {
+  font-size: 10.5px; line-height: 1.5; opacity: 0.6;
+  max-height: 40px; overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.poster-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;
+}
+.poster-link { color: rgba(255,255,255,0.6); text-decoration: none; }
+.poster-link:hover { color: #fff; }
+.poster-score { font-weight: 600; font-size: 12px; }
+.poster-score.high { color: var(--success); }
+.poster-score.mid { color: var(--gold); }
+.poster-score.low { color: var(--danger); }
+
+/* ── 高亮态：三区通用 ── */
+@keyframes highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(96,165,250,0.7); }
+  50% { box-shadow: 0 0 0 10px rgba(96,165,250,0); }
+}
+.highlight-active {
+  border-color: var(--accent) !important;
+  animation: highlight-pulse 1.2s ease-in-out infinite !important;
+  z-index: 20 !important;
+}
+.poster-card.highlight-active {
+  box-shadow: 0 0 24px rgba(96,165,250,0.5), 0 8px 24px rgba(0,0,0,0.5) !important;
+  border-color: var(--accent) !important;
+}
+
+/* ─────── B/C区: 右侧 ─────── */
+.zone-bc {
+  width: 50%; min-width: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* B区: 右上地图 */
+.zone-b {
+  height: 50%; flex-shrink: 0;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+#map { width: 100%; height: 100%; }
+
+.map-legend {
+  position: absolute; bottom: 8px; left: 8px; z-index: 1000;
+  background: rgba(10,14,20,0.92); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px 10px;
+  font-size: 9px; display: flex; flex-direction: column; gap: 3px;
+  backdrop-filter: blur(6px);
+}
+.map-legend .li { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.map-legend .ld { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.map-marker-highlight {
+  filter: drop-shadow(0 0 8px rgba(96,165,250,0.9)) !important;
+}
+
+/* ─────── C区: C4 面板 + 甘特图 ─────── */
+.zone-c {
+  height: 50%; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ── C4 面板 (上 66.6%) ── */
+.c4-panel {
+  flex: 2; min-height: 0;
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+/* C4-左侧 冲突对比 (90% 宽) */
+.c4-conflict {
+  width: 90%; min-width: 0;
+  overflow-y: auto; overflow-x: hidden;
+  background: var(--surface);
+  padding: 12px 16px;
+}
+.c4-conflict::-webkit-scrollbar { width: 4px; }
+.c4-conflict::-webkit-scrollbar-track { background: transparent; }
+.c4-conflict::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.c4c-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--muted); gap: 10px;
+}
+.c4c-placeholder .c4c-ph-icon { font-size: 36px; opacity: 0.5; }
+.c4c-placeholder .c4c-ph-text { font-size: 12px; letter-spacing: 0.5px; }
+
+.c4c-header {
+  font-size: 12px; font-weight: 600; color: var(--danger);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+}
+.c4c-header .c4c-gids { font-size: 10px; color: var(--muted); font-weight: 400; }
+
+/* 冲突表（内嵌版） */
+.c4c-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.c4c-table th,.c4c-table td { padding: 6px 10px; text-align: center; border-bottom: 1px solid var(--border); }
+.c4c-table th { font-weight: 500; color: var(--muted); font-size: 9px; letter-spacing: 0.5px; white-space: nowrap; }
+.c4c-table th:first-child,.c4c-table td:first-child { text-align: left; }
+.c4c-table td:first-child { font-weight: 500; color: var(--muted); font-size: 10px; }
+.c4c-table .winning { color: var(--success); font-weight: 500; }
+.c4c-table .losing { color: var(--danger); }
+.c4c-table .winner-row td { background: rgba(34,197,94,0.05); }
+.c4c-table .sc-hi { color: var(--success); font-weight: 500; }
+.c4c-table .sc-mid { color: var(--gold); font-weight: 500; }
+.c4c-table .sc-lo { color: var(--danger); font-weight: 500; }
+.c4c-recommend { display: inline-block; background: var(--success); color: #fff; font-size: 9px; padding: 2px 7px; border-radius: 8px; font-weight: 500; }
+.c4c-advice {
+  margin-top: 10px; padding: 10px 14px; background: var(--surface2);
+  border-radius: var(--radius); font-size: 11px; line-height: 1.5;
+}
+
+/* C4-右侧 气象限行面板 (10% 宽) */
+.c4-weather {
+  width: 10%; min-width: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px 8px; gap: 6px;
+  overflow: hidden;
+}
+.c4w-label {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  white-space: nowrap; letter-spacing: 1px;
+}
+.c4w-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+.c4w-desc { font-size: 10px; color: var(--text); font-weight: 500; white-space: nowrap; }
+.c4w-temp { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.4; }
+.c4w-divider { width: 60%; height: 1px; background: var(--border); flex-shrink: 0; }
+.c4w-limit-label { font-size: 8px; color: var(--muted); letter-spacing: 1px; text-align: center; }
+.c4w-limit-val {
+  font-size: 14px; font-weight: 800; color: var(--danger);
+  text-align: center; line-height: 1.2; white-space: nowrap;
+}
+.c4w-nolimit {
+  font-size: 12px; font-weight: 600; color: var(--success);
+  text-align: center; white-space: nowrap;
+}
+
+/* ── 甘特图区域 (下 33.3%) ── */
+.gantt-area {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.gantt-day-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 14px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.gantt-day-header .gdh-label { font-weight: 600; color: var(--accent); }
+.gantt-day-header .gdh-stats { font-size: 9px; color: var(--muted); }
+
+.gantt-scroll {
+  flex: 1; overflow-x: auto; overflow-y: hidden;
+  scroll-behavior: smooth;
+}
+.gantt-scroll::-webkit-scrollbar { height: 4px; }
+.gantt-scroll::-webkit-scrollbar-track { background: transparent; }
+.gantt-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.gantt-container {
+  display: flex; flex-direction: column;
+  height: 100%; min-width: 100%;
+  position: relative;
+}
+
+/* ── C2/C3 活动轨道 ── */
+.gantt-tracks {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.gantt-track {
+  flex: 1; position: relative;
+  border-bottom: 1px dashed rgba(255,255,255,0.04);
+}
+.gantt-track-label {
+  position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+  font-size: 7px; color: rgba(255,255,255,0.12); z-index: 0;
+  writing-mode: vertical-lr; letter-spacing: 1px;
+}
+
+/* ── 活动甘特块 (v5.0 降噪版) ── */
+.gantt-block {
+  position: absolute; top: 2px; bottom: 2px;
+  border-radius: 5px; cursor: pointer;
+  transition: all var(--transition);
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  z-index: 2;
+  display: flex; flex-direction: row; align-items: stretch;
+}
+.gantt-block:hover { filter: brightness(1.15); z-index: 5; }
+.gantt-block.cold {
+  background: linear-gradient(135deg, rgba(26,35,126,0.95) 0%, rgba(40,53,147,0.95) 100%);
+  border-color: #3949ab;
+}
+.gantt-block.warm {
+  background: linear-gradient(135deg, rgba(191,54,12,0.95) 0%, rgba(230,81,0,0.95) 100%);
+  border-color: #ff6d00;
+}
+.gantt-block.neutral {
+  background: linear-gradient(135deg, rgba(55,71,79,0.95) 0%, rgba(69,90,100,0.95) 100%);
+  border-color: #607d8b;
+}
+.gantt-block.highlight-active {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 18px rgba(96,165,250,0.6) !important;
+}
+
+/* 甘特块内 global_id 小圆 */
+.gantt-block .gb-gid {
+  flex-shrink: 0; width: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.gantt-block .gb-gid span {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(255,255,255,0.18); display: flex;
+  align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700;
+  color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* 甘特块文字 v5.0: 垂直三行 — 时间(大)/名称(中)/杂项(小) */
+.gantt-block .gb-content {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 2px 6px 2px 0; gap: 1px;
+}
+.gantt-block .gb-time {
+  font-size: 13px; font-weight: 800; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4); line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+.gantt-block .gb-name {
+  font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.92);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.gantt-block .gb-misc {
+  font-size: 7.5px; font-weight: 400; color: rgba(255,255,255,0.55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* 冲突脉冲标记 */
+@keyframes conflict-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(244,63,94,0.6); border-color: rgba(244,63,94,0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(244,63,94,0); border-color: var(--danger); }
+}
+.gantt-block.conflict-marker {
+  animation: conflict-pulse 1.8s ease-in-out infinite;
+}
+
+/* ── C1 渐变时间轴 ── */
+.gantt-axis {
+  height: 30px; flex-shrink: 0;
+  position: relative;
+  background: linear-gradient(to right,
+    #eab308 0%,       /* 08:00 黄 */
+    #ef4444 25%,      /* 12:00 红 */
+    #3b82f6 62.5%,    /* 18:00 蓝 */
+    #0f172a 100%      /* 24:00 深黑蓝 */
+  );
+  border-top: 1px solid var(--border);
+}
+.gantt-tick {
+  position: absolute; top: 2px; font-size: 8px;
+  font-weight: 600; color: rgba(255,255,255,0.8);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.gantt-tick-line {
+  position: absolute; top: 16px; width: 1px; height: 14px;
+  background: rgba(255,255,255,0.15);
+}
+.gantt-now-line {
+  position: absolute; top: 0; width: 2px; height: 100%;
+  background: var(--gold); z-index: 10;
+  box-shadow: 0 0 6px rgba(245,158,11,0.5);
+}
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 120px; color: var(--muted); font-size: 13px; gap: 8px;
+}
+
+/* Leaflet overrides */
+.leaflet-popup-content-wrapper { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); }
+.leaflet-popup-tip { background: var(--surface); }
+.leaflet-popup-close-button { color: var(--muted)!important; }
+.leaflet-control-zoom a { background: var(--surface)!important; color: var(--text)!important; border-color: var(--border)!important; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .main { flex-direction: column; }
+  .zone-a { width: 100%; height: 50%; }
+  .zone-bc { width: 100%; height: 50%; }
+  .zone-b { height: 50%; }
+  .zone-c { height: 50%; }
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .zone-a-body.day-mode .a-detail { width: 40%; }
+  .zone-a-body.day-mode .a-list { width: 60%; }
+}
+@media (max-width: 480px) {
+  .gallery-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>🎯 周末交友战术指挥舱</h1>
+  <span class="h-badge" id="h-week"></span>
+  <span class="h-badge" id="h-gen"></span>
+  <span class="h-origin"><span class="dot"></span>原点：朝阳区南平里</span>
+</header>
+
+<div class="main">
+
+  <!-- ========== A区: Master-Detail 图文海报 ========== -->
+  <div class="zone-a">
+    <!-- 全局筛选 Tab（100%宽度） -->
+    <div class="filter-bar" id="filter-bar">
+      <button class="filter-btn active" data-day="all">全局<span class="fc-badge" id="fc-all">9</span></button>
+      <button class="filter-btn" data-day="friday">周五<span class="fc-badge" id="fc-fri">2</span></button>
+      <button class="filter-btn" data-day="saturday">周六<span class="fc-badge" id="fc-sat">4</span></button>
+      <button class="filter-btn" data-day="sunday">周日<span class="fc-badge" id="fc-sun">3</span></button>
+    </div>
+    <div class="stats-ribbon" id="stats-ribbon"></div>
+
+    <!-- A区 Master-Detail 主体 -->
+    <div class="zone-a-body global-mode" id="zone-a-body">
+      <!-- 左侧：Detail 详情面板 -->
+      <div class="a-detail" id="a-detail">
+        <div class="a-detail-scroll" id="a-detail-scroll">
+          <div class="ad-placeholder" id="ad-placeholder">
+            <div class="ad-ph-icon">👈</div>
+            <div class="ad-ph-text">点击右侧活动卡片<br>查看详细情报</div>
+          </div>
+        </div>
+      </div>
+      <!-- 右侧：List 列表面板 -->
+      <div class="a-list" id="a-list">
+        <div class="gallery-scroll" id="gallery-scroll">
+          <div class="gallery-grid" id="gallery"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== B/C区: 地图 + 甘特图 ========== -->
+  <div class="zone-bc">
+    <div class="zone-b">
+      <div id="map"></div>
+      <div class="map-legend">
+        <div class="li"><span class="ld" style="background:var(--gold)"></span>原点 · 南平里</div>
+        <div class="li"><span class="ld" style="background:#ef4444"></span>精确图钉(编号)</div>
+        <div class="li"><span class="ld" style="background:rgba(59,130,246,0.4);border:1px solid #3b82f6"></span>模糊热力圈(编号)</div>
+        <div class="li"><span class="ld" style="background:transparent;border-bottom:2px dashed #60a5fa;width:16px;border-radius:0"></span>行车路线</div>
+      </div>
+    </div>
+
+    <div class="zone-c">
+      <!-- C4 面板 (上 66.6%) -->
+      <div class="c4-panel">
+        <!-- C4-左 90%: 冲突对比 -->
+        <div class="c4-conflict" id="c4-conflict">
+          <div class="c4c-placeholder" id="c4c-placeholder">
+            <div class="c4c-ph-icon">⚡</div>
+            <div class="c4c-ph-text">当前未检测到战术冲突</div>
+          </div>
+        </div>
+        <!-- C4-右 10%: 气象限行 -->
+        <div class="c4-weather" id="c4-weather"></div>
+      </div>
+
+      <!-- 甘特图区域 (下 33.3%) -->
+      <div class="gantt-area">
+        <div class="gantt-day-header" id="gantt-day-header">
+          <span class="gdh-label" id="gdh-label">全局 · 全部活动</span>
+          <span class="gdh-stats" id="gdh-stats"></span>
+        </div>
+        <div class="gantt-scroll" id="gantt-scroll">
+          <div class="gantt-container" id="gantt-container">
+            <div class="gantt-tracks" id="gantt-tracks">
+              <div class="gantt-track" id="gantt-c2">
+                <span class="gantt-track-label">C2</span>
+              </div>
+              <div class="gantt-track" id="gantt-c3">
+                <span class="gantt-track-label">C3</span>
+              </div>
+            </div>
+            <div class="gantt-axis" id="gantt-axis"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ===== 嵌入数据 =====
+const WEEK_DATA = {"$schema":"urn:tactical-dating:schema:1.0","version":"1.0.0","generated_at":"2026-05-21T20:12:43.764094+08:00","origin":{"address":"北京市朝阳区南平里","lat":39.98,"lng":116.48},"week":"2026-W21","days":{"friday":{"date":"2026-05-22","day_label":"friday","day_label_cn":"周五","timeline":[{"type":"activity","id":"evt_202605_001","name":"央企海归高端相亲酒会","organizer":"遇见·朝阳","start_time":"2026-05-22T14:00:00+08:00","end_time":"2026-05-22T17:00:00+08:00","fee":198,"fee_unit":"元/人","participant_count":40,"address_raw":"朝阳区大望路SOHO现代城A座301","lat":39.9042,"lng":116.4703,"is_precise":true,"ima_source_url":"https://ima.qq.com/kb/note/evt_001","tone_tag":"cold","tone_keywords_hit":["国企","央企","海归","金融","高学历","硕士","年薪"],"essence_text":"面向央企、金融、海归等高学历人群的周末下午茶相亲活动。参与门槛：硕士以上学历或年薪50万+，活动含专业主持人破冰环节、一对一交流与自由酒会。国企、央企员工优先。","tags":[],"notes":"","gender_ratio":"男女1:1","threshold":"硕士以上学历 / 年薪50万+","core_activities":"主持人破冰 → 一对一交流 → 自由酒会","cover_image":"https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800&q=80","value_score":63.3,"score_breakdown":{"scale_score":88.9,"cost_score":55.6,"convenience_score":44.4},"global_id":1},{"type":"transit_spacer","from_activity_id":"evt_202605_001","to_activity_id":"evt_202605_002","from_name":"大望路SOHO现代城A…","to_name":"朝阳公园南门附近","distance_km":6.2,"duration_min":22,"traffic_condition":"normal","display_label":"🚗 驱车转场：6.2 公里 | 预计耗时：22 分钟（大望路SOHO现代城A… → 朝阳公园南门附近）"},{"type":"activity","id":"evt_202605_002","name":"周五晚间飞盘社交局","organizer":"盘友圈","start_time":"2026-05-22T19:00:00+08:00","end_time":"2026-05-22T21:00:00+08:00","fee":68,"fee_unit":"元/人","participant_count":24,"address_raw":"朝阳公园南门附近","lat":39.942,"lng":116.4765,"is_precise":false,"ima_source_url":"https://ima.qq.com/kb/note/evt_002","tone_tag":"warm","tone_keywords_hit":["户外","飞盘"],"essence_text":"轻松户外飞盘活动，新手友好，无需经验。活动后有集体夜宵（AA制）。以运动交友为主，氛围轻松活泼，适合想通过户外运动拓展社交圈的小伙伴。","tags":[],"notes":"","gender_ratio":"男女不限","threshold":"无门槛·新手友好","core_activities":"飞盘教学 → 分组对抗 → 集体夜宵","cover_image":"https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800&q=80","value_score":72.8,"score_breakdown":{"scale_score":44.4,"cost_score":100.0,"convenience_score":77.8},"global_id":2}],"conflict_groups":[]},"saturday":{"date":"2026-05-23","day_label":"saturday","day_label_cn":"周六","timeline":[{"type":"activity","id":"evt_202605_003","name":"金融圈精英早午餐会","organizer":"CBD鹊桥会","start_time":"2026-05-23T10:30:00+08:00","end_time":"2026-05-23T13:00:00+08:00","fee":288,"fee_unit":"元/人","participant_count":30,"address_raw":"朝阳区国贸三期B座56层云酷餐厅","lat":39.9087,"lng":116.4605,"is_precise":true,"ima_source_url":"https://ima.qq.com/kb/note/evt_003","tone_tag":"cold","tone_keywords_hit":["金融","硕士","精英"],"essence_text":"专为金融行业从业者、投行、PE/VC精英打造的高端早午餐相亲会。参与者多为硕士以上学历，含米其林主厨定制菜单，环境私密雅致。需着正装出席。","tags":[],"notes":"","gender_ratio":"男女1:1（15男15女）","threshold":"金融行业从业者 / 硕士以上","core_activities":"米其林早午餐 → 嘉宾分享 → 圆桌轮转交流","cover_image":"","value_score":49.5,"score_breakdown":{"scale_score":66.7,"cost_score":22.2,"convenience_score":55.6},"global_id":3},{"type":"transit_spacer","from_activity_id":"evt_202605_003","to_activity_id":"evt_202605_004","from_name":"国贸三期B座56层云酷…","to_name":"五道口华清商务会馆B1","distance_km":16.5,"duration_min":38,"traffic_condition":"normal","display_label":"🚗 驱车转场：16.5 公里 | 预计耗时：38 分钟（国贸三期B座56层云酷… → 五道口华清商务会馆B1）"},{"type":"activity","id":"evt_202605_004","name":"剧本杀《年轮》脱单专场","organizer":"谜局工作室","start_time":"2026-05-23T14:00:00+08:00","end_time":"2026-05-23T18:00:00+08:00","fee":158,"fee_unit":"元/人","participant_count":12,"address_raw":"海淀区五道口华清商务会馆B1","lat":39.993,"lng":116.338,"is_precise":true,"ima_source_url":"https://ima.qq.com/kb/note/evt_004","tone_tag":"warm","tone_keywords_hit":["剧本杀"],"essence_text":"经典推理剧本杀《年轮》，DM专业带队，6男6女配对。剧本杀是脱单交友的最佳方式之一，在角色扮演中自然破冰，无需尴尬自我介绍。活动含零食饮料。","tags":[],"notes":"","gender_ratio":"6男6女（严格配对）","threshold":"无学历门槛·趣味推理","core_activities":"角色分配 → 剧本推理 → 真相复盘 → 自由交流","cover_image":"","value_score":31.7,"score_breakdown":{"scale_score":11.1,"cost_score":66.7,"convenience_score":22.2},"global_id":4},{"type":"transit_spacer","from_activity_id":"evt_202605_004","to_activity_id":"evt_202605_005","from_name":"五道口华清商务会馆B1","to_name":"三里屯太古里Wework","distance_km":14.2,"duration_min":35,"traffic_condition":"normal","display_label":"🚗 驱车转场：14.2 公里 | 预计耗时：35 分钟（五道口华清商务会馆B1 → 三里屯太古里Wework）"},{"type":"activity","id":"evt_202605_005","name":"海归博士创业相亲派对","organizer":"海归之家","start_time":"2026-05-23T15:00:00+08:00","end_time":"2026-05-23T18:00:00+08:00","fee":268,"fee_unit":"元/人","participant_count":36,"address_raw":"朝阳区三里屯太古里Wework","lat":39.9327,"lng":116.4551,"is_precise":true,"ima_source_url":"https://ima.qq.com/kb/note/evt_005","tone_tag":"neutral","tone_keywords_hit":["海归","硕士","博士","名校","派对"],"essence_text":"面向海归博士、名校硕士群体的高端交流派对。主题为'创业与爱情'，邀请3位创业嘉宾分享，设置speed dating环节。参与者需提交学历证明。","tags":[],"notes":"","gender_ratio":"男女1:1（名校优先）","threshold":"海归/博士/名校硕士 · 需提交学历证明","core_activities":"创业嘉宾分享 → Speed Dating → 自由社交","cover_image":"https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80","value_score":60.6,"score_breakdown":{"scale_score":77.8,"cost_score":33.3,"convenience_score":66.7},"global_id":5},{"type":"transit_spacer","from_activity_id":"evt_202605_005","to_activity_id":"evt_202605_009","from_name":"三里屯太古里Wework","to_name":"朝阳区亮马桥官舍3层","distance_km":3.1,"duration_min":12,"traffic_condition":"normal","display_label":"🚗 驱车转场：3.1 公里 | 预计耗时：12 分钟（三里屯太古里Wework → 朝阳区亮马桥官舍3层）"},{"type":"activity","id":"evt_202605_009","name":"高端红酒品鉴单身夜","organizer":"Wine&Love","start_time":"2026-05-23T19:30:00+08:00","end_time":"2026-05-23T22:00:00+08:00","fee":388,"fee_unit":"元/人","participant_count":20,"address_raw":"朝阳区亮马桥官舍3层","lat":39.9499,"lng":116.462,"is_precise":true,"ima_source_url":"https://ima.qq.com/kb/note/evt_009","tone_tag":"cold","tone_keywords_hit":["海归","金融"],"essence_text":"精品红酒品鉴会，特邀WSET三级品酒师主讲。5款新旧世界佳酿品鉴，搭配法式奶酪拼盘。参与人群以金融、外企、海归为主，着装要求business casual。","tags":[],"notes":"","gender_ratio":"男女1:1（10男10女）","threshold":"金融/外企/海归 · 商务休闲着装","core_activities":"品酒教学 → 5款佳酿盲品 → 奶酪搭配 → 自由社交","cover_image":"","value_score":46.1,"score_breakdown":{"scale_score":33.3,"cost_score":11.1,"convenience_score":88.9},"global_id":6}],"conflict_groups":[{"conflict_group_id":"cg_sat_001","day":"saturday","members":[{"activity_id":"evt_202605_004","activity_name":"剧本杀《年轮》脱单专场","lat":39.993,"lng":116.338,"fee_per_person":158,"participant_count":12,"cost_per_capita":158,"crowd_density":"低","transit_from_prev_km":19.6,"transit_from_prev_min":39,"value_score":31.7,"score_breakdown":{"scale_score":11.1,"cost_score":66.7,"convenience_score":22.2}},{"activity_id":"evt_202605_005","activity_name":"海归博士创业相亲派对","lat":39.9327,"lng":116.4551,"fee_per_person":268,"participant_count":36,"cost_per_capita":268,"crowd_density":"中等","transit_from_prev_km":16.8,"transit_from_prev_min":33,"value_score":60.6,"score_breakdown":{"scale_score":77.8,"cost_score":33.3,"convenience_score":66.7}}],"conflict_window":{"overlap_start":"2026-05-23T15:00:00+08:00","overlap_end":"2026-05-23T18:00:00+08:00"}}]},"sunday":{"date":"2026-05-24","day_label":"sunday","day_label_cn":"周日","timeline":[{"type":"activity","id":"evt_202605_006","name":"露营烧烤户外脱单营","organizer":"野趣户外","start_time":"2026-05-24T09:00:00+08:00","end_time":"2026-05-24T16:00:00+08:00","fee":198,"fee_unit":"元/人","participant_count":30,"address_raw":"昌平区十三陵水库附近","lat":40.257,"lng":116.27,"is_precise":false,"ima_source_url":"https://ima.qq.com/kb/note/evt_006","tone_tag":"warm","tone_keywords_hit":["桌游","户外","露营","徒步","烧烤"],"essence_text":"一整天户外露营+烧烤+团队游戏。上午集合出发，中午BBQ，下午徒步或桌游自由活动。纯户外体验，零压力社交环境，适合喜欢大自然和运动的单身青年。","tags":[],"notes":"","gender_ratio":"男女1:1 单身优先","threshold":"无门槛·户外爱好者","core_activities":"集合出发 → 户外BBQ → 徒步/桌游 → 篝火夜话","cover_image":"https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80","value_score":43.9,"score_breakdown":{"scale_score":66.7,"cost_score":55.6,"convenience_score":11.1},"global_id":7},{"type":"transit_spacer","from_activity_id":"evt_202605_006","to_activity_id":"evt_202605_007","from_name":"昌平区十三陵水库附近","to_name":"西城区西单大悦城附近","distance_km":48.0,"duration_min":65,"traffic_condition":"normal","display_label":"🚗 驱车转场：48.0 公里 | 预计耗时：65 分钟（昌平区十三陵水库附近 → 西城区西单大悦城附近）"},{"type":"activity","id":"evt_202605_007","name":"体制内公务员相亲下午茶","organizer":"京缘汇","start_time":"2026-05-24T14:00:00+08:00","end_time":"2026-05-24T17:00:00+08:00","fee":128,"fee_unit":"元/人","participant_count":50,"address_raw":"西城区西单大悦城附近","lat":39.9133,"lng":116.3736,"is_precise":false,"ima_source_url":"https://ima.qq.com/kb/note/evt_007","tone_tag":"cold","tone_keywords_hit":["国企","体制内","事业单位","公务员"],"essence_text":"面向公务员、事业单位、国企等体制内人员的专场相亲活动。轻松下午茶形式，门槛为本科以上学历、有稳定体制内工作。主办方已成功配对超过200对。","tags":[],"notes":"","gender_ratio":"男女1:1 体制内限定","threshold":"本科以上 / 体制内在编","core_activities":"下午茶破冰 → 标签速配 → 深度交流 → 互换联系方式","cover_image":"","value_score":70.0,"score_breakdown":{"scale_score":100.0,"cost_score":77.8,"convenience_score":33.3},"global_id":8},{"type":"transit_spacer","from_activity_id":"evt_202605_007","to_activity_id":"evt_202605_008","from_name":"西城区西单大悦城附近","to_name":"朝阳区蓝色港湾KTV","distance_km":14.5,"duration_min":32,"traffic_condition":"normal","display_label":"🚗 驱车转场：14.5 公里 | 预计耗时：32 分钟（西城区西单大悦城附近 → 朝阳区蓝色港湾KTV）"},{"type":"activity","id":"evt_202605_008","name":"K歌交友之夜","organizer":"麦霸社","start_time":"2026-05-24T19:00:00+08:00","end_time":"2026-05-24T22:00:00+08:00","fee":88,"fee_unit":"元/人","participant_count":16,"address_raw":"朝阳区蓝色港湾KTV","lat":39.949,"lng":116.4732,"is_precise":true,"ima_source_url":"https://ima.qq.com/kb/note/evt_008","tone_tag":"warm","tone_keywords_hit":["K歌"],"essence_text":"K歌交友局，包间已定，麦霸和新手都欢迎。以歌会友，气氛轻松热闹。歌曲接龙、情歌对唱等互动环节帮助破冰。","tags":[],"notes":"","gender_ratio":"男女不限·自由报名","threshold":"无门槛·爱唱歌即可","core_activities":"自由点歌 → 歌曲接龙 → 情歌对唱 → 合唱收尾","cover_image":"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80","value_score":69.4,"score_breakdown":{"scale_score":22.2,"cost_score":88.9,"convenience_score":100.0},"global_id":9}],"conflict_groups":[{"conflict_group_id":"cg_sun_001","day":"sunday","members":[{"activity_id":"evt_202605_006","activity_name":"露营烧烤户外脱单营","lat":40.257,"lng":116.27,"fee_per_person":198,"participant_count":30,"cost_per_capita":198,"crowd_density":"中等","transit_from_prev_km":0,"transit_from_prev_min":0,"value_score":43.9,"score_breakdown":{"scale_score":66.7,"cost_score":55.6,"convenience_score":11.1}},{"activity_id":"evt_202605_007","activity_name":"体制内公务员相亲下午茶","lat":39.9133,"lng":116.3736,"fee_per_person":128,"participant_count":50,"cost_per_capita":128,"crowd_density":"高","transit_from_prev_km":54.9,"transit_from_prev_min":109,"value_score":70.0,"score_breakdown":{"scale_score":100.0,"cost_score":77.8,"convenience_score":33.3}}],"conflict_window":{"overlap_start":"2026-05-24T14:00:00+08:00","overlap_end":"2026-05-24T16:00:00+08:00"}}]}}};
+
+/* ================================================================
+   战术指挥舱 v5.0 — 应用逻辑
+   ================================================================ */
+const ORIGIN = WEEK_DATA.origin;
+const DAYS = WEEK_DATA.days;
+const DAY_LABELS = { friday:'周五', saturday:'周六', sunday:'周日' };
+const DAY_LABELS_FULL = { all:'全局 · 全部活动', friday:'周五 · 2026-05-22', saturday:'周六 · 2026-05-23', sunday:'周日 · 2026-05-24' };
+const TONE_LABELS = { cold:'🔵 严肃', warm:'🟠 轻松', neutral:'⚪ 中性' };
+const GANTT_START_HOUR = 8;
+const GANTT_END_HOUR = 24;
+const GANTT_TOTAL_MIN = (GANTT_END_HOUR - GANTT_START_HOUR) * 60;
+
+/* ===== Mock 气象限行数据 ===== */
+const WEATHER_DATA = {
+  friday:   { icon: '☀️', desc: '晴', temp: '22℃ ~ 32℃', limit: '4 和 9', limitLabel: '限行尾号' },
+  saturday: { icon: '⛅', desc: '多云', temp: '20℃ ~ 30℃', limit: null, limitLabel: '周末不限行' },
+  sunday:   { icon: '🌤️', desc: '晴转多云', temp: '21℃ ~ 31℃', limit: null, limitLabel: '周末不限行' },
+  all:      { icon: '🗓️', desc: '周末天气', temp: '20℃ ~ 32℃', limit: null, limitLabel: '请选日期' },
+};
+
+/* ===== 全局状态 ===== */
+let currentFilter = 'all';
+let globalIdMap = {};
+let mapMarkerMap = {};
+let conflictIdSet = new Set();
+let conflictMap = {};
+let selectedActivityId = null;  // A区Detail当前选中的活动ID
+
+/* ===== 提取所有活动 ===== */
+function getAllActivities() {
+  const all = [];
+  for (const dk of ['friday','saturday','sunday']) {
+    (DAYS[dk]?.timeline || []).forEach(item => {
+      if (item.type === 'activity') all.push(item);
+    });
+  }
+  return all;
+}
+
+function getActivitiesByDay(filter) {
+  if (filter === 'all') return getAllActivities();
+  const acts = [];
+  (DAYS[filter]?.timeline || []).forEach(item => {
+    if (item.type === 'activity') acts.push(item);
+  });
+  return acts;
+}
+
+/* ===== 构建 global_id 索引 + 冲突映射 ===== */
+function buildGlobalIdMap() {
+  globalIdMap = {};
+  conflictIdSet = new Set();
+  conflictMap = {};
+  for (const dk of ['friday','saturday','sunday']) {
+    (DAYS[dk]?.timeline || []).forEach(item => {
+      if (item.type === 'activity' && item.global_id) {
+        globalIdMap[item.global_id] = { activity: item, dayKey: dk };
+      }
+    });
+    (DAYS[dk]?.conflict_groups || []).forEach(cg => {
+      cg.members.forEach(m => {
+        conflictIdSet.add(m.activity_id);
+        conflictMap[m.activity_id] = cg;
+      });
+    });
+  }
+}
+
+function timeToMin(isoStr) {
+  const parts = isoStr.match(/T(\d{2}):(\d{2})/);
+  if (!parts) return 0;
+  return parseInt(parts[1]) * 60 + parseInt(parts[2]);
+}
+
+function minToPct(min) {
+  return Math.max(0, Math.min(100, (min - GANTT_START_HOUR * 60) / GANTT_TOTAL_MIN * 100));
+}
+
+/* ================================================================
+   A区: 筛选 Tab + 统计通栏 + Master-Detail
+   ================================================================ */
+
+function setupFilterTabs() {
+  const btns = document.querySelectorAll('.filter-btn');
+  btns.forEach(b => {
+    b.addEventListener('click', () => {
+      btns.forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      currentFilter = b.dataset.day;
+      selectedActivityId = null;
+      applyFilter(currentFilter);
+    });
+  });
+}
+
+function applyFilter(filter) {
+  currentFilter = filter;
+  // 切换 A区布局模式
+  const zoneABody = document.getElementById('zone-a-body');
+  if (filter === 'all') {
+    zoneABody.classList.remove('day-mode');
+    zoneABody.classList.add('global-mode');
+  } else {
+    zoneABody.classList.remove('global-mode');
+    zoneABody.classList.add('day-mode');
+  }
+
+  renderStatsRibbon(filter);
+  renderGallery(filter);
+  renderMap(filter);
+  renderGanttChart(filter);
+  renderC4Weather(filter);
+  renderC4Conflict(null);           // 重置冲突面板
+  renderDetailPlaceholder();        // 重置详情面板
+  updateGanttDayHeader(filter);
+}
+
+function updateGanttDayHeader(filter) {
+  document.getElementById('gdh-label').textContent = DAY_LABELS_FULL[filter] || filter;
+  const acts = getActivitiesByDay(filter);
+  const totalFee = acts.reduce((s,a) => s + (a.fee||0), 0);
+  document.getElementById('gdh-stats').textContent = `${acts.length}场 · ¥${totalFee}`;
+}
+
+function renderStatsRibbon(filter) {
+  const all = getActivitiesByDay(filter || 'all');
+  const totalEvents = all.length;
+  const totalBudget = all.reduce((s,a) => s + (a.fee||0), 0);
+  const totalPeople = all.reduce((s,a) => s + (a.participant_count||0), 0);
+  const coldCount = all.filter(a => a.tone_tag==='cold').length;
+  const warmCount = all.filter(a => a.tone_tag==='warm').length;
+  const total = coldCount + warmCount || 1;
+  const coldPct = Math.round(coldCount/total*100);
+  const warmPct = Math.round(warmCount/total*100);
+
+  document.getElementById('stats-ribbon').innerHTML = `
+    <div class="sr-item"><span class="sr-val">${totalEvents}</span><span class="sr-lbl">场</span></div>
+    <div class="sr-divider"></div>
+    <div class="sr-item"><span class="sr-val">¥${totalBudget.toLocaleString()}</span><span class="sr-lbl">预算</span></div>
+    <div class="sr-divider"></div>
+    <div class="sr-item"><span class="sr-val">${totalPeople}</span><span class="sr-lbl">人流量</span></div>
+    <div class="sr-divider"></div>
+    <div class="sr-bar-wrap">
+      <span class="sr-bar-lbl">🔵${coldCount}</span>
+      <div class="sr-bar-track">
+        <div class="sr-bar-fill cold" style="width:${coldPct}%"></div>
+        <div class="sr-bar-fill warm" style="width:${warmPct}%"></div>
+      </div>
+      <span class="sr-bar-count">🟠${warmCount}</span>
+    </div>
+  `;
+}
+
+/* ── A区 Gallery 渲染 ── */
+function renderGallery(filter) {
+  const acts = getActivitiesByDay(filter || 'all');
+  const container = document.getElementById('gallery');
+  if (!acts.length) { container.innerHTML = '<div class="empty-state">📭 暂无活动</div>'; return; }
+
+  // 分日模式：单列；全局模式：多列Grid
+  if (filter !== 'all') {
+    container.classList.add('single-col');
+  } else {
+    container.classList.remove('single-col');
+  }
+
+  container.innerHTML = acts.map(a => renderPosterCard(a)).join('');
+
+  container.querySelectorAll('.poster-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const gid = parseInt(this.dataset.globalId);
+      const aid = this.dataset.activityId;
+      selectedActivityId = aid;
+
+      // 分日模式：渲染Detail面板
+      if (currentFilter !== 'all') {
+        const info = globalIdMap[gid];
+        if (info) renderDetailPanel(info.activity);
+        // 高亮选中卡片
+        container.querySelectorAll('.poster-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+      }
+
+      highlightByGlobalId(gid);
+
+      // 冲突面板
+      if (conflictIdSet.has(aid)) {
+        renderC4Conflict(conflictMap[aid]);
+      } else {
+        renderC4Conflict(null);
+      }
+    });
+
+    card.addEventListener('mouseenter', function() {
+      const gid = parseInt(this.dataset.globalId);
+      softHighlightByGlobalId(gid);
+    });
+    card.addEventListener('mouseleave', clearHighlights);
+  });
+}
+
+function renderPosterCard(a) {
+  const tone = a.tone_tag || 'neutral';
+  const gid = a.global_id || '?';
+  const time = `${(a.start_time||'').slice(11,16)} ~ ${(a.end_time||'').slice(11,16)}`;
+  const hasImage = a.cover_image && a.cover_image.length > 10;
+
+  let bgStyle = '';
+  if (hasImage) {
+    bgStyle = `background-image:url(${a.cover_image});background-size:cover;background-position:center;`;
+  } else {
+    const gradients = {
+      cold:   'linear-gradient(160deg, #0f172a 0%, #1e3a5f 40%, #1a237e 100%)',
+      warm:   'linear-gradient(160deg, #431407 0%, #92400e 40%, #b45309 100%)',
+      neutral:'linear-gradient(160deg, #1c1917 0%, #374151 40%, #1e293b 100%)',
+    };
+    bgStyle = `background:${gradients[tone]||gradients.neutral};`;
+  }
+
+  const scCls = (a.value_score||0) >= 70 ? 'high' : (a.value_score||0) >= 50 ? 'mid' : 'low';
+
+  return `
+  <div class="poster-card" data-activity-id="${a.id}" data-global-id="${gid}" style="${hasImage ? '' : bgStyle}">
+    ${hasImage ? `<div class="poster-bg" style="${bgStyle}"></div>` : ''}
+    <div class="poster-overlay"></div>
+    <div class="global-id-badge"><span class="gid-num">${gid}</span></div>
+    <span class="poster-tone tone-${tone}">${TONE_LABELS[tone]||tone}</span>
+    <div class="poster-content">
+      <div class="poster-name">${a.name}</div>
+      <div class="poster-meta">
+        <div class="pm-item"><span class="pm-lbl">主办</span><span class="pm-val">${a.organizer||''}</span></div>
+        <div class="pm-item"><span class="pm-lbl">时间</span><span class="pm-val">${time}</span></div>
+        <div class="pm-item"><span class="pm-lbl">费用</span><span class="pm-val">¥${a.fee||0}</span></div>
+        <div class="pm-item"><span class="pm-lbl">人数</span><span class="pm-val">${a.participant_count||0}人</span></div>
+        <div class="pm-item" style="grid-column:1/-1"><span class="pm-lbl">📍</span><span class="pm-val">${a.address_raw||''}</span></div>
+      </div>
+      <div class="poster-details">
+        ${a.gender_ratio ? `<div class="poster-detail-row"><span class="poster-detail-icon">👫</span><span class="poster-detail-text">${a.gender_ratio}</span></div>` : ''}
+        ${a.threshold ? `<div class="poster-detail-row"><span class="poster-detail-icon">🎯</span><span class="poster-detail-text">${a.threshold}</span></div>` : ''}
+        ${a.core_activities ? `<div class="poster-detail-row"><span class="poster-detail-icon">🎪</span><span class="poster-detail-text">${a.core_activities}</span></div>` : ''}
+      </div>
+      ${a.essence_text ? `<div class="poster-essence">${a.essence_text}</div>` : ''}
+      <div class="poster-footer">
+        <a class="poster-link" href="${a.ima_source_url||'#'}" target="_blank" onclick="event.stopPropagation()">📎 IMA笔记</a>
+        <span class="poster-score ${scCls}">⭐ ${a.value_score||'—'}分</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── A区 Detail 详情面板 ── */
+function renderDetailPlaceholder() {
+  const scroll = document.getElementById('a-detail-scroll');
+  scroll.innerHTML = `
+    <div class="ad-placeholder" id="ad-placeholder">
+      <div class="ad-ph-icon">👈</div>
+      <div class="ad-ph-text">点击右侧活动卡片<br>查看详细情报</div>
+    </div>`;
+}
+
+function renderDetailPanel(act) {
+  if (!act) { renderDetailPlaceholder(); return; }
+  const scroll = document.getElementById('a-detail-scroll');
+  const gid = act.global_id || '?';
+  const time = `${(act.start_time||'').slice(11,16)} ~ ${(act.end_time||'').slice(11,16)}`;
+  const tone = act.tone_tag || 'neutral';
+  const scCls = (act.value_score||0) >= 70 ? 'high' : (act.value_score||0) >= 50 ? 'mid' : 'low';
+
+  scroll.innerHTML = `
+    <div class="ad-header">
+      <div class="ad-gid-badge"><span class="ad-gid-num">${gid}</span></div>
+      <div class="ad-title-group">
+        <div class="ad-title">${act.name}</div>
+        <span class="ad-tone-tag ${tone}">${TONE_LABELS[tone]||tone}</span>
+      </div>
+    </div>
+
+    <div class="ad-section">
+      <div class="ad-section-title">📋 基础信息</div>
+      <div class="ad-info-grid">
+        <div class="ad-info-item">
+          <span class="ad-info-lbl">⏰ 时间</span>
+          <span class="ad-info-val large">${time}</span>
+        </div>
+        <div class="ad-info-item">
+          <span class="ad-info-lbl">🏢 主办方</span>
+          <span class="ad-info-val">${act.organizer||'—'}</span>
+        </div>
+        <div class="ad-info-item">
+          <span class="ad-info-lbl">💰 费用</span>
+          <span class="ad-info-val">¥${act.fee||0} ${act.fee_unit||''}</span>
+        </div>
+        <div class="ad-info-item">
+          <span class="ad-info-lbl">👥 人数</span>
+          <span class="ad-info-val">${act.participant_count||0}人</span>
+        </div>
+        <div class="ad-info-item" style="grid-column:1/-1">
+          <span class="ad-info-lbl">📍 地址</span>
+          <span class="ad-info-val">${act.address_raw||'—'}</span>
+        </div>
+      </div>
+    </div>
+
+    ${act.gender_ratio ? `
+    <div class="ad-section">
+      <div class="ad-section-title">👫 性别比例</div>
+      <div class="ad-info-val">${act.gender_ratio}</div>
+    </div>` : ''}
+
+    ${act.threshold ? `
+    <div class="ad-section">
+      <div class="ad-section-title">🎯 参与门槛</div>
+      <div class="ad-info-val">${act.threshold}</div>
+    </div>` : ''}
+
+    ${act.core_activities ? `
+    <div class="ad-section">
+      <div class="ad-section-title">🎪 环节流程</div>
+      <div class="ad-core">${act.core_activities}</div>
+    </div>` : ''}
+
+    ${act.full_raw_text ? `
+    <div class="ad-section">
+      <div class="ad-section-title">📝 完整情报</div>
+      <div class="ad-full-text">${act.full_raw_text}</div>
+    </div>` : (act.essence_text ? `
+    <div class="ad-section">
+      <div class="ad-section-title">📝 精华情报</div>
+      <div class="ad-essence">${act.essence_text}</div>
+    </div>` : '')}
+
+    ${(act.images && act.images.length > 0) ? `
+    <div class="ad-section">
+      <div class="ad-section-title">🖼️ 活动图片 (${act.images.length}张)</div>
+      <div class="ad-images-grid">
+        ${act.images.map(url => `
+          <a href="${url}" target="_blank" onclick="event.stopPropagation()">
+            <img src="${url}" alt="活动图片" loading="lazy" onerror="this.style.display='none'" />
+          </a>
+        `).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="ad-section">
+      <div class="ad-section-title">⭐ 性价比评估</div>
+      <div class="ad-score-row">
+        <span class="ad-score-big ${scCls}">${act.value_score||'—'}</span>
+        <div class="ad-score-breakdown">
+          ${act.score_breakdown ? `
+            规模 ${act.score_breakdown.scale_score||0} · 费用 ${act.score_breakdown.cost_score||0} · 便利 ${act.score_breakdown.convenience_score||0}
+          ` : ''}
+        </div>
+      </div>
+    </div>
+
+    ${act.ima_source_url ? `
+    <a class="ad-link" href="${act.ima_source_url}" target="_blank">📎 查看IMA原始笔记 →</a>
+    ` : ''}
+  `;
+}
+
+/* ================================================================
+   B区: 地图
+   ================================================================ */
+
+const map = L.map('map', {
+  center: [ORIGIN.lat, ORIGIN.lng], zoom: 11,
+  zoomControl: true, attributionControl: false
+});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18, opacity: 0.65
+}).addTo(map);
+
+const originIcon = L.divIcon({
+  className: '',
+  html: '<div style="background:#f59e0b;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 10px rgba(245,158,11,0.6);font-size:14px;">🏠</div>',
+  iconSize: [30,30], iconAnchor: [15,15], popupAnchor: [0,-17]
+});
+L.marker([ORIGIN.lat, ORIGIN.lng], { icon: originIcon })
+  .addTo(map).bindPopup('<b>🏠 原点</b><br>北京市朝阳区南平里');
+
+let markersLayer = L.layerGroup().addTo(map);
+let routesLayer = L.layerGroup().addTo(map);
+let heatLayer = L.layerGroup().addTo(map);
+
+function clearMap() {
+  markersLayer.clearLayers();
+  routesLayer.clearLayers();
+  heatLayer.clearLayers();
+  mapMarkerMap = {};
+}
+
+function fitMap(activities) {
+  if (!activities.length) return;
+  const bounds = [[ORIGIN.lat, ORIGIN.lng]];
+  activities.forEach(a => bounds.push([a.lat, a.lng]));
+  map.fitBounds(bounds, { padding: [30,30], maxZoom: 13 });
+}
+
+function buildPopup(act) {
+  const gid = act.global_id || '?';
+  const t = `${(act.start_time||'').slice(11,16)} ~ ${(act.end_time||'').slice(11,16)}`;
+  return `<div style="font-size:11px;line-height:1.6;min-width:200px">
+    <b style="font-size:13px">#${gid} ${act.name}</b><br>
+    🏢 ${act.organizer}<br>
+    🕐 ${t}<br>
+    💰 ¥${act.fee} | 👥 ${act.participant_count}人<br>
+    ${act.gender_ratio ? '👫 '+act.gender_ratio+'<br>' : ''}
+    📍 ${act.address_raw}<br>
+    <span style="font-size:9px;color:#60a5fa">⭐ 性价比 ${act.value_score}分</span>
+  </div>`;
+}
+
+function createPreciseMarkerIcon(gid) {
+  return L.divIcon({
+    className: 'map-marker-icon',
+    html: `<div style="position:relative;width:28px;height:28px;">
+      <div style="position:absolute;top:4px;left:4px;background:#ef4444;width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>
+      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);color:#fff;font-weight:800;font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${gid}</span>
+    </div>`,
+    iconSize: [28,28], iconAnchor: [14,28], popupAnchor: [0,-28]
+  });
+}
+
+function createFuzzyMarkerIcon(gid) {
+  return L.divIcon({
+    className: 'map-marker-icon',
+    html: `<div style="background:#3b82f6;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 2px 10px rgba(59,130,246,0.6);color:#fff;font-weight:800;font-size:11px;">${gid}</div>`,
+    iconSize: [26,26], iconAnchor: [13,13], popupAnchor: [0,-14]
+  });
+}
+
+function renderMap(filter) {
+  clearMap();
+  const activities = getActivitiesByDay(filter || 'all');
+  if (!activities.length) { fitMap([]); return; }
+
+  const routePts = [];
+  activities.forEach(act => {
+    const gid = act.global_id || '?';
+    if (act.is_precise) {
+      const icon = createPreciseMarkerIcon(gid);
+      const mk = L.marker([act.lat, act.lng], { icon }).bindPopup(buildPopup(act));
+      mk._gid = gid;
+      mk.on('click', () => {
+        highlightByGlobalId(parseInt(gid));
+        const aid = act.id;
+        if (conflictIdSet.has(aid)) renderC4Conflict(conflictMap[aid]);
+        else renderC4Conflict(null);
+        // 联动A区Detail
+        if (currentFilter !== 'all') {
+          renderDetailPanel(act);
+          selectedActivityId = aid;
+          document.querySelectorAll('.poster-card.selected').forEach(c=>c.classList.remove('selected'));
+          const card = document.querySelector(`.poster-card[data-activity-id="${aid}"]`);
+          if (card) card.classList.add('selected');
+        }
+      });
+      markersLayer.addLayer(mk);
+      mapMarkerMap[gid] = mk;
+    } else {
+      const circle = L.circle([act.lat, act.lng], {
+        radius: 800, color: '#3b82f6', fillColor: '#3b82f6',
+        fillOpacity: 0.12, weight: 1.5, dashArray: '4 4'
+      }).bindPopup(buildPopup(act));
+      heatLayer.addLayer(circle);
+
+      const dotIcon = createFuzzyMarkerIcon(gid);
+      const dot = L.marker([act.lat, act.lng], { icon: dotIcon }).bindPopup(buildPopup(act));
+      dot._gid = gid;
+      dot.on('click', () => {
+        highlightByGlobalId(parseInt(gid));
+        const aid = act.id;
+        if (conflictIdSet.has(aid)) renderC4Conflict(conflictMap[aid]);
+        else renderC4Conflict(null);
+        if (currentFilter !== 'all') {
+          renderDetailPanel(act);
+          selectedActivityId = aid;
+          document.querySelectorAll('.poster-card.selected').forEach(c=>c.classList.remove('selected'));
+          const card = document.querySelector(`.poster-card[data-activity-id="${aid}"]`);
+          if (card) card.classList.add('selected');
+        }
+      });
+      markersLayer.addLayer(dot);
+      mapMarkerMap[gid] = dot;
+    }
+    routePts.push([act.lat, act.lng]);
+  });
+
+  if (routePts.length >= 2) {
+    routesLayer.addLayer(L.polyline(routePts, {
+      color: '#60a5fa', weight: 2, opacity: 0.5, dashArray: '8 5'
+    }));
+  }
+  fitMap(activities);
+}
+
+/* ================================================================
+   C区: C4 面板 + 甘特图
+   ================================================================ */
+
+/* ── C4 冲突对比面板（左 90%） ── */
+function renderC4Conflict(cg) {
+  const el = document.getElementById('c4-conflict');
+  if (!cg || !cg.members || cg.members.length < 2) {
+    el.innerHTML = `
+      <div class="c4c-placeholder">
+        <div class="c4c-ph-icon">⚡</div>
+        <div class="c4c-ph-text">当前未检测到战术冲突</div>
+      </div>`;
+    return;
+  }
+
+  const members = cg.members;
+  const maxScore = Math.max(...members.map(m => m.value_score));
+  const os = (cg.conflict_window?.overlap_start||'').slice(11,16)||'—';
+  const oe = (cg.conflict_window?.overlap_end||'').slice(11,16)||'—';
+
+  // 找到对应 global_id
+  const gids = members.map(m => {
+    for (const [gid, info] of Object.entries(globalIdMap)) {
+      if (info.activity.id === m.activity_id) return gid;
+    }
+    return '?';
+  });
+
+  let html = `<div class="c4c-header">⚡ 战术冲突检测 <span class="c4c-gids">#${gids.join(' vs #')} | 重叠时段 ${os}~${oe}</span></div>`;
+  html += `<table class="c4c-table"><thead><tr><th>对比维度</th>`;
+  members.forEach(m => {
+    const w = m.value_score === maxScore;
+    html += `<th class="${w?'winning':''}">${m.activity_name}${w?' 🏆':''}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  html += `<tr><td>时间重叠</td>${members.map(()=>`<td>${os}~${oe}</td>`).join('')}</tr>`;
+
+  const minFee = Math.min(...members.map(m=>m.fee_per_person));
+  html += `<tr><td>客单价</td>${members.map(m=>`<td class="${m.fee_per_person===minFee?'winning':''}">¥${m.fee_per_person}</td>`).join('')}</tr>`;
+
+  const maxP = Math.max(...members.map(m=>m.participant_count));
+  html += `<tr><td>参与人数</td>${members.map(m=>`<td class="${m.participant_count===maxP?'winning':''}">${m.participant_count}人 (${m.crowd_density})</td>`).join('')}</tr>`;
+
+  const minT = Math.min(...members.map(m=>m.transit_from_prev_min||Infinity));
+  html += `<tr><td>转场路耗</td>${members.map(m=>{
+    const cl = (m.transit_from_prev_min===minT&&m.transit_from_prev_min>0)?'winning':'';
+    return `<td class="${cl}">${m.transit_from_prev_km||0}km/${m.transit_from_prev_min||0}min</td>`;
+  }).join('')}</tr>`;
+
+  ['scale_score','cost_score','convenience_score'].forEach((k,i)=>{
+    const labels = ['规模评分','费用评分','便利评分'];
+    html += `<tr><td>${labels[i]}</td>`;
+    const best = Math.max(...members.map(m=>m.score_breakdown?.[k]||0));
+    members.forEach(m=>{
+      const v = m.score_breakdown?.[k]||0;
+      html += `<td class="${v===best&&best>0?'winning':''}">${v}</td>`;
+    });
+    html += `</tr>`;
+  });
+
+  html += `<tr class="winner-row"><td><b>综合性价比</b></td>`;
+  members.forEach(m=>{
+    const w = m.value_score===maxScore;
+    const sc = m.value_score>=70?'sc-hi':m.value_score>=50?'sc-mid':'sc-lo';
+    html += `<td class="${sc}"><b>${m.value_score}分</b> ${w?'<span class="c4c-recommend">推荐</span>':''}</td>`;
+  });
+  html += `</tr></tbody></table>`;
+
+  const winner = members.find(m=>m.value_score===maxScore);
+  html += `<div class="c4c-advice">
+    <b style="color:var(--success)">💡 决策建议：</b>「${winner.activity_name}」以<b>${winner.value_score}分</b>胜出。
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+/* ── C4 气象限行面板（右 10%） ── */
+function renderC4Weather(filter) {
+  const w = WEATHER_DATA[filter] || WEATHER_DATA.all;
+  const el = document.getElementById('c4-weather');
+  const dayLabel = filter === 'all' ? '全局' : (DAY_LABELS[filter] || '');
+
+  let limitHtml = '';
+  if (w.limit) {
+    limitHtml = `<div class="c4w-divider"></div>
+      <div class="c4w-limit-label">${w.limitLabel}</div>
+      <div class="c4w-limit-val">${w.limit}</div>`;
+  } else {
+    limitHtml = `<div class="c4w-divider"></div>
+      <div class="c4w-limit-label">${w.limitLabel}</div>
+      <div class="c4w-nolimit">不限行</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="c4w-label">${dayLabel}</div>
+    <div class="c4w-icon">${w.icon}</div>
+    <div class="c4w-desc">${w.desc}</div>
+    <div class="c4w-temp">${w.temp.replace(' ~ ', '<br>')}</div>
+    ${limitHtml}
+  `;
+}
+
+/* ── C1/C2/C3 甘特图 ── */
+function renderGanttChart(filter) {
+  const activities = getActivitiesByDay(filter || 'all');
+  const c2Track = document.getElementById('gantt-c2');
+  const c3Track = document.getElementById('gantt-c3');
+  const axisEl = document.getElementById('gantt-axis');
+
+  c2Track.querySelectorAll('.gantt-block').forEach(el => el.remove());
+  c3Track.querySelectorAll('.gantt-block').forEach(el => el.remove());
+  axisEl.innerHTML = '';
+
+  // C1 时间轴刻度
+  for (let h = GANTT_START_HOUR; h <= GANTT_END_HOUR; h++) {
+    const pct = minToPct(h * 60);
+    const tick = document.createElement('div');
+    tick.className = 'gantt-tick';
+    tick.style.left = pct + '%';
+    tick.style.transform = 'translateX(-50%)';
+    tick.textContent = h.toString().padStart(2, '0') + ':00';
+    axisEl.appendChild(tick);
+
+    const line = document.createElement('div');
+    line.className = 'gantt-tick-line';
+    line.style.left = pct + '%';
+    axisEl.appendChild(line);
+  }
+
+  // 现在时刻线
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowPct = minToPct(nowMin);
+  if (nowPct >= 0 && nowPct <= 100) {
+    const nowLine = document.createElement('div');
+    nowLine.className = 'gantt-now-line';
+    nowLine.style.left = nowPct + '%';
+    axisEl.appendChild(nowLine);
+  }
+
+  if (!activities.length) {
+    c2Track.innerHTML = '<div class="empty-state" style="position:absolute;inset:0;display:flex">📭 该筛选条件下无活动</div>';
+    return;
+  }
+
+  // C2/C3 活动块（交替摆放 + v5.0 降噪文字）
+  activities.forEach((act, idx) => {
+    const track = idx % 2 === 0 ? c2Track : c3Track;
+    const gid = act.global_id || '?';
+    const tone = act.tone_tag || 'neutral';
+    const isConflict = conflictIdSet.has(act.id);
+
+    const startMin = timeToMin(act.start_time);
+    const endMin = timeToMin(act.end_time);
+    const clampedStart = Math.max(startMin, GANTT_START_HOUR * 60);
+    const clampedEnd = Math.min(endMin, GANTT_END_HOUR * 60);
+    const leftPct = minToPct(clampedStart);
+    const widthPct = Math.max(2, minToPct(clampedEnd) - leftPct);
+
+    const block = document.createElement('div');
+    block.className = `gantt-block ${tone}${isConflict ? ' conflict-marker' : ''}`;
+    block.dataset.globalId = gid;
+    block.dataset.activityId = act.id;
+    block.style.left = leftPct + '%';
+    block.style.width = widthPct + '%';
+
+    const timeStr = `${(act.start_time||'').slice(11,16)}-${(act.end_time||'').slice(11,16)}`;
+    const miscStr = `${act.organizer||''} | ¥${act.fee||0} | ${act.participant_count||0}人`;
+    block.title = `#${gid} ${act.name}\n${timeStr}\n${miscStr}`;
+
+    // v5.0 降噪版: 时间(最大) / 名称(次之) / 杂项(最小一行)
+    block.innerHTML = `
+      <span class="gb-gid"><span>${gid}</span></span>
+      <div class="gb-content">
+        <span class="gb-time">${timeStr}</span>
+        <span class="gb-name">${act.name}</span>
+        <span class="gb-misc">${miscStr}</span>
+      </div>
+    `;
+
+    block.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const gidInt = parseInt(this.dataset.globalId);
+      const aid = this.dataset.activityId;
+
+      highlightByGlobalId(gidInt);
+
+      if (conflictIdSet.has(aid)) renderC4Conflict(conflictMap[aid]);
+      else renderC4Conflict(null);
+
+      // 联动A区Detail
+      if (currentFilter !== 'all') {
+        const info = globalIdMap[gidInt];
+        if (info) {
+          renderDetailPanel(info.activity);
+          selectedActivityId = aid;
+          document.querySelectorAll('.poster-card.selected').forEach(c=>c.classList.remove('selected'));
+          const card = document.querySelector(`.poster-card[data-activity-id="${aid}"]`);
+          if (card) card.classList.add('selected');
+        }
+      }
+    });
+
+    block.addEventListener('mouseenter', function() {
+      softHighlightByGlobalId(parseInt(this.dataset.globalId));
+    });
+    block.addEventListener('mouseleave', clearHighlights);
+
+    track.appendChild(block);
+  });
+}
+
+/* ================================================================
+   三区联动：高亮
+   ================================================================ */
+
+function highlightByGlobalId(gid) {
+  clearHighlights();
+  if (!gid || !globalIdMap[gid]) return;
+  const info = globalIdMap[gid];
+
+  // A区：滚动到海报卡片 + 高亮
+  const posterCard = document.querySelector(`.poster-card[data-global-id="${gid}"]`);
+  if (posterCard) {
+    posterCard.classList.add('highlight-active');
+    posterCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // B区：flyTo + 弹出 popup
+  const mk = mapMarkerMap[gid];
+  if (mk && info.activity) {
+    const act = info.activity;
+    map.flyTo([act.lat, act.lng], 14, { duration: 0.8 });
+    setTimeout(() => { mk.openPopup(); }, 900);
+    const iconEl = mk.getElement();
+    if (iconEl) iconEl.classList.add('map-marker-highlight');
+    mk._highlighted = true;
+  }
+
+  // C区：滚动到甘特块 + 高亮
+  const ganttBlock = document.querySelector(`.gantt-block[data-global-id="${gid}"]`);
+  if (ganttBlock) {
+    ganttBlock.classList.add('highlight-active');
+    ganttBlock.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  }
+}
+
+function softHighlightByGlobalId(gid) {
+  if (!gid || !globalIdMap[gid]) return;
+  const posterCard = document.querySelector(`.poster-card[data-global-id="${gid}"]`);
+  if (posterCard) posterCard.classList.add('highlight-active');
+
+  const ganttBlock = document.querySelector(`.gantt-block[data-global-id="${gid}"]`);
+  if (ganttBlock) ganttBlock.classList.add('highlight-active');
+
+  const mk = mapMarkerMap[gid];
+  if (mk) {
+    const iconEl = mk.getElement();
+    if (iconEl) iconEl.classList.add('map-marker-highlight');
+    mk._highlighted = true;
+  }
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
+  Object.values(mapMarkerMap).forEach(mk => {
+    if (mk._highlighted) {
+      const iconEl = mk.getElement();
+      if (iconEl) iconEl.classList.remove('map-marker-highlight');
+      mk._highlighted = false;
+    }
+  });
+}
+
+// 点击空白区域清除高亮
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.poster-card') && !e.target.closest('.gantt-block') && !e.target.closest('.leaflet-marker-icon')) {
+    setTimeout(clearHighlights, 100);
+  }
+});
+
+/* ===== 初始化 ===== */
+function init() {
+  buildGlobalIdMap();
+  document.getElementById('h-week').textContent = WEEK_DATA.week||'—';
+  document.getElementById('h-gen').textContent = '更新:'+(WEEK_DATA.generated_at||'').slice(0,10);
+  setupFilterTabs();
+  renderStatsRibbon('all');
+  renderGallery('all');
+  renderMap('all');
+  renderGanttChart('all');
+  renderC4Weather('all');
+  renderC4Conflict(null);
+  updateGanttDayHeader('all');
+  setTimeout(() => map.invalidateSize(), 200);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 200); });
+</script>
+</body>
+</html>
