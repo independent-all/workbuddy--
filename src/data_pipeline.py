@@ -1,343 +1,394 @@
 """
-Phase 1: 数据管线
-─────────────────
-功能：
-  1. 从原始文本/模拟输入中提取结构化活动属性
-  2. 通过高德 Geocoding API（或 Mock）获取经纬度
-  3. 判定地址精准度 (is_precise)
-  4. 基于关键词自动编码色调标签 (cold/warm/neutral)
-  5. 提取活动精华文本 (essence_text)
-
-输出：parsed_events.json — 包含完整属性的活动列表
+============================================================================
+ data_pipeline.py — 活动信息结构化解析管道
+============================================================================
+ 职责:
+   1. 从 raw_text（高级抓取器提取的纯文本）中提取结构化字段
+   2. 字段: 活动标题、时间、地点、类型、费用、报名方式、来源公众号
+   3. 使用正则 + 中文 NLP 启发式规则
+============================================================================
 """
 
-import json
 import re
+import json
+import logging
 from datetime import datetime
-from pathlib import Path
+from typing import Any
 
-import requests
+logger = logging.getLogger(__name__)
 
-from config import (
-    ORIGIN_LAT, ORIGIN_LNG,
-    AMAP_KEY,
-    GEOCODE_URL,
-    REQUEST_TIMEOUT,
-    COLD_KEYWORDS,
-    WARM_KEYWORDS,
-    DATA_DIR,
-)
+# ===========================================================================
+# 正则模式库
+# ===========================================================================
 
-# ─────────────────────────────────────────────────────────
-# 1. 原始文本解析器：从 raw_text + 结构化字段中组装 Activity
-# ─────────────────────────────────────────────────────────
+PATTERNS = {
+    # 时间模式
+    'time_date': re.compile(
+        r'(\d{1,2}[月/.]){1,2}(\d{1,2}[日号])?'
+    ),
+    'time_full': re.compile(
+        r'((?:活动)?时间[：:]\s*[^\n]{4,40})',
+        re.IGNORECASE,
+    ),
+    'time_range': re.compile(
+        r'(\d{1,2}[:：]\d{2}\s*[-~—至到]\s*\d{1,2}[:：]\d{2})',
+    ),
+    'weekday': re.compile(
+        r'周[一二三四五六日]|星期[一二三四五六日]',
+    ),
 
+    # 地点模式
+    'location': re.compile(
+        r'(?:地点|地址|位置|坐标)[：:]\s*([^\n]{2,60})',
+        re.IGNORECASE,
+    ),
+    'location_kw': re.compile(
+        r'(北京|上海|广州|深圳|杭州|成都|武汉|南京|天津|重庆|苏州|西安|长沙|青岛|大连|厦门|郑州|东莞|合肥|佛山|沈阳|昆明|济南|无锡|宁波)'
+        r'(?:市)?(?:[^\n,，。；]{0,30})',
+    ),
+    'district': re.compile(
+        r'(朝阳|海淀|东城|西城|丰台|石景山|通州|大兴|昌平|顺义|房山|门头沟|怀柔|平谷|密云|延庆)区',
+    ),
 
-def parse_activity(raw: dict, event_id: str) -> dict:
-    """
-    将一条原始活动记录解析为标准 Activity 结构。
+    # 费用模式
+    'cost': re.compile(
+        r'(?:费用|价格|票价|收费|人均|报名费)[：:]\s*([^\n]{3,30})',
+        re.IGNORECASE,
+    ),
+    'cost_free': re.compile(
+        r'(免费|不收费|无需费用|0\s*元|无费用)',
+    ),
+    'cost_number': re.compile(
+        r'(\d{1,4}\s*[-~—至到]\s*\d{1,4}\s*元[/／人位]?)',
+    ),
+    'cost_single': re.compile(
+        r'(\d{1,4}\s*元[/／人位次场]?)',
+    ),
 
-    raw: 来自 sample_data.py 的 SAMPLE_EVENTS 元素
-    event_id: 活动唯一标识
-    """
-    # 解析时间
-    date_part = raw["date_str"]  # "2026-05-22"
-    time_parts = raw["time_range"].split("-")  # ["14:00", "17:00"]
+    # 活动类型
+    'type_camping': re.compile(r'(露营|野餐|帐篷|天幕|户外)'),
+    'type_speed_dating': re.compile(r'(八分钟|轮桌|速配|Speed\s*Dating|闪电约会)'),
+    'type_boardgame': re.compile(r'(桌游|狼人杀|剧本杀|掼蛋|UNO|三国杀|阿瓦隆)'),
+    'type_hiking': re.compile(r'(徒步|爬山|登山|穿越|户外运动)'),
+    'type_party': re.compile(r'(派对|Party|轰趴|聚会|酒会|微醺|脱单)'),
+    'type_singing': re.compile(r'(KTV|唱歌|K歌|麦霸)'),
+    'type_sports': re.compile(r'(飞盘|羽毛球|篮球|足球|网球|骑行|滑雪)'),
+    'type_social': re.compile(r'(联谊|交友|相亲|社交|单身|硕博|高知|名校|海归)'),
+    'type_art': re.compile(r'(电影|爵士|音乐|画展|艺术|摄影)'),
+    'type_workshop': re.compile(r'(工作坊|讲座|分享会|沙龙|读书)'),
 
-    start_time = f"{date_part}T{time_parts[0]}:00+08:00"
-    end_time = f"{date_part}T{time_parts[1]}:00+08:00"
+    # 报名方式
+    'registration': re.compile(
+        r'(?:报名|扫码|添加|咨询|联系)[：:]\s*([^\n]{3,60})',
+        re.IGNORECASE,
+    ),
+    'wechat_id': re.compile(r'(微信[：:]\s*[a-zA-Z0-9_-]{5,20})'),
+    'qr_code': re.compile(r'(二维码|扫码|长按)'),
 
-    # 调试：验证时间格式
-    try:
-        datetime.fromisoformat(start_time)
-        datetime.fromisoformat(end_time)
-    except ValueError as e:
-        print(f"  [WARN] 时间解析异常 {event_id}: {e}")
+    # 公众号来源
+    'source_mp': re.compile(
+        r'(?:公众号|微信公众号|微信\s*ID)[：:]\s*([^\n]{2,40})',
+        re.IGNORECASE,
+    ),
 
-    activity = {
-        "type": "activity",
-        "id": event_id,
-        "name": raw["title"],
-        "organizer": raw["organizer"],
-        "start_time": start_time,
-        "end_time": end_time,
-        "fee": raw["fee"],
-        "fee_unit": "元/人",
-        "participant_count": raw["participants"],
-        "address_raw": raw["address"],
-        # 以下字段由后续模块填充
-        "lat": 0.0,
-        "lng": 0.0,
-        "is_precise": False,
-        "ima_source_url": raw["ima_url"],
-        "tone_tag": "neutral",
-        "tone_keywords_hit": [],
-        "essence_text": "",
-        "tags": [],
-        "notes": "",
-        # v1.1 新增字段：卡片高密度信息
-        "gender_ratio": raw.get("gender_ratio", ""),
-        "threshold": raw.get("threshold", ""),
-        "core_activities": raw.get("core_activities", ""),
-        # v1.2 新增字段：封面图 URL（海报卡片背景）
-        "cover_image": raw.get("cover_image", ""),
-        # v1.3 新增字段：无损全文 + 图片数组（供A区Detail面板渲染）
-        "full_raw_text": raw.get("full_raw_text", raw.get("raw_text", "")),
-        "images": raw.get("images", []),
-    }
+    # 人数规模
+    'capacity': re.compile(
+        r'(\d{1,4}\s*人[以之]?[内上下]?|\d{1,3}对|规模[：:]\s*\d+)',
+    ),
 
-    return activity
+    # 目标人群
+    'target_group': re.compile(
+        r'((?:85|90|95|00)\s*后|硕士|博士|海归|名校|京户|京房|高知)',
+    ),
 
-
-# ─────────────────────────────────────────────────────────
-# 2. 地理编码模块：Mock + 真实 API 双模式
-# ─────────────────────────────────────────────────────────
-
-# Mock 地址 → 坐标映射表（当 API Key 不可用时使用）
-MOCK_GEOCODE_MAP = {
-    "朝阳区大望路SOHO现代城A座301":   (39.9042, 116.4703, True),
-    "朝阳公园南门附近":                (39.9420, 116.4765, False),
-    "朝阳区国贸三期B座56层云酷餐厅":   (39.9087, 116.4605, True),
-    "海淀区五道口华清商务会馆B1":      (39.9930, 116.3380, True),
-    "朝阳区三里屯太古里Wework":        (39.9327, 116.4551, True),
-    "昌平区十三陵水库附近":            (40.2570, 116.2700, False),
-    "西城区西单大悦城附近":            (39.9133, 116.3736, False),
-    "朝阳区蓝色港湾KTV":               (39.9490, 116.4732, True),
-    "朝阳区亮马桥官舍3层":             (39.9499, 116.4620, True),
+    # 主办方
+    'organizer': re.compile(
+        r'(?:主办|承办|协办|出品)[：:]\s*([^\n]{2,40})',
+        re.IGNORECASE,
+    ),
 }
 
 
-def _is_likely_precise(address: str) -> bool:
+# ===========================================================================
+# 活动类型映射
+# ===========================================================================
+
+TYPE_KEYWORDS = {
+    '露营/户外': PATTERNS['type_camping'],
+    '八分钟速配': PATTERNS['type_speed_dating'],
+    '桌游': PATTERNS['type_boardgame'],
+    '徒步/爬山': PATTERNS['type_hiking'],
+    '派对/酒会': PATTERNS['type_party'],
+    'KTV/唱歌': PATTERNS['type_singing'],
+    '运动': PATTERNS['type_sports'],
+    '联谊/相亲': PATTERNS['type_social'],
+    '艺术/电影': PATTERNS['type_art'],
+    '讲座/沙龙': PATTERNS['type_workshop'],
+}
+
+
+# ===========================================================================
+# 解析引擎
+# ===========================================================================
+
+
+class DataPipeline:
+    """活动文本结构化解析器"""
+
+    def __init__(self):
+        pass
+
+    def parse(self, text: str) -> dict[str, Any]:
+        """
+        从原始文本中提取结构化活动信息。
+
+        Parameters
+        ----------
+        text : str
+            抓取/OCR 得到的纯文本
+
+        Returns
+        -------
+        dict
+            结构化的活动字段
+        """
+        if not text or len(text.strip()) < 10:
+            return {'error': '文本过短，无法解析'}
+
+        text = self._clean_text(text)
+
+        result = {
+            'activity_title': self._extract_title(text),
+            'activity_time': self._extract_time(text),
+            'activity_location': self._extract_location(text),
+            'activity_type': self._extract_types(text),
+            'cost': self._extract_cost(text),
+            'is_free': self._is_free(text),
+            'registration': self._extract_registration(text),
+            'capacity': self._extract_capacity(text),
+            'target_group': self._extract_target_group(text),
+            'organizer': self._extract_organizer(text),
+            'source_mp': self._extract_source_mp(text),
+            'has_qr_code': bool(PATTERNS['qr_code'].search(text)),
+        }
+
+        # 填充摘要
+        result['summary'] = self._generate_summary(result)
+        return result
+
+    # ---- 文本清洗 ----
+
+    def _clean_text(self, text: str) -> str:
+        """清洗文本，去除多余空格和换行"""
+        # 合并多余换行
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        # 合并多余空格
+        text = re.sub(r' {2,}', ' ', text)
+        return text.strip()
+
+    # ---- 字段提取 ----
+
+    def _extract_title(self, text: str) -> str:
+        """提取活动标题（取第一行有意义的文本）"""
+        lines = text.split('\n')
+        for line in lines:
+            line = line.strip()
+            # 过滤明显的非标题行
+            if len(line) >= 5 and not line.startswith(('http', '微信', '扫码', '公众号', '长按')):
+                if any(kw in line for kw in ['活动', '联谊', '单身', '相亲', '派对', '露营', '周末',
+                                              '脱单', '交友', '社交', 'KTV', '徒步', '飞盘']):
+                    return line[:80]
+        # 回退：取第一行
+        for line in lines:
+            if len(line.strip()) >= 5:
+                return line.strip()[:80]
+        return ''
+
+    def _extract_time(self, text: str) -> str:
+        """提取活动时间"""
+        time_parts = []
+
+        # 精确时间行
+        m = PATTERNS['time_full'].search(text)
+        if m:
+            time_parts.append(m.group(1))
+
+        # 时间范围
+        for m in PATTERNS['time_range'].finditer(text):
+            time_parts.append(m.group(1))
+
+        # 日期模式
+        dates = PATTERNS['time_date'].findall(text)
+        if dates:
+            date_strs = [''.join(d) for d in dates[:3]]
+            time_parts.extend(date_strs)
+
+        # 星期
+        weekdays = PATTERNS['weekday'].findall(text)
+        if weekdays:
+            time_parts.extend(weekdays[:2])
+
+        return '; '.join(time_parts[:5]) if time_parts else ''
+
+    def _extract_location(self, text: str) -> str:
+        """提取活动地点"""
+        loc_parts = []
+
+        # 显式地点标注
+        m = PATTERNS['location'].search(text)
+        if m:
+            loc_parts.append(m.group(1).strip())
+
+        # 城区关键词
+        districts = PATTERNS['district'].findall(text)
+        if districts:
+            loc_parts.extend([f'{d}区' for d in districts[:2]])
+
+        # 城市+地标
+        cities = PATTERNS['location_kw'].findall(text)
+        if cities and not loc_parts:
+            loc_parts.extend(cities[:2])
+
+        return '; '.join(loc_parts[:3]) if loc_parts else ''
+
+    def _extract_types(self, text: str) -> list[str]:
+        """识别活动类型标签"""
+        types = []
+        for type_name, pattern in TYPE_KEYWORDS.items():
+            if pattern.search(text):
+                types.append(type_name)
+        return types
+
+    def _extract_cost(self, text: str) -> str:
+        """提取费用信息"""
+        cost_parts = []
+
+        # 显式费用标注
+        m = PATTERNS['cost'].search(text)
+        if m:
+            cost_parts.append(m.group(1).strip())
+
+        # 价格范围
+        for m in PATTERNS['cost_number'].finditer(text):
+            cost_parts.append(m.group(1))
+
+        # 单一价格
+        for m in PATTERNS['cost_single'].finditer(text):
+            cost_parts.append(m.group(1))
+
+        # 去重
+        seen = set()
+        unique = []
+        for c in cost_parts:
+            if c not in seen:
+                seen.add(c)
+                unique.append(c)
+
+        return '; '.join(unique[:3]) if unique else ''
+
+    def _is_free(self, text: str) -> bool:
+        """判断是否免费"""
+        return bool(PATTERNS['cost_free'].search(text))
+
+    def _extract_registration(self, text: str) -> str:
+        """提取报名方式"""
+        parts = []
+
+        m = PATTERNS['registration'].search(text)
+        if m:
+            parts.append(m.group(1).strip())
+
+        m = PATTERNS['wechat_id'].search(text)
+        if m:
+            parts.append(m.group(1))
+
+        if PATTERNS['qr_code'].search(text):
+            parts.append('(含二维码)')
+
+        return '; '.join(parts) if parts else ''
+
+    def _extract_capacity(self, text: str) -> str:
+        """提取人数规模"""
+        caps = PATTERNS['capacity'].findall(text)
+        return '; '.join(caps[:2]) if caps else ''
+
+    def _extract_target_group(self, text: str) -> list[str]:
+        """提取目标人群"""
+        groups = PATTERNS['target_group'].findall(text)
+        return list(set(groups[:5]))
+
+    def _extract_organizer(self, text: str) -> str:
+        """提取主办方"""
+        m = PATTERNS['organizer'].search(text)
+        return m.group(1).strip() if m else ''
+
+    def _extract_source_mp(self, text: str) -> str:
+        """提取来源公众号"""
+        m = PATTERNS['source_mp'].search(text)
+        return m.group(1).strip() if m else ''
+
+    # ---- 摘要生成 ----
+
+    def _generate_summary(self, result: dict) -> str:
+        """基于解析结果生成一行摘要"""
+        parts = []
+        if result.get('activity_time'):
+            parts.append(result['activity_time'][:20])
+        if result.get('activity_location'):
+            parts.append(result['activity_location'][:15])
+        if result.get('cost'):
+            parts.append(result['cost'][:15])
+        elif result.get('is_free'):
+            parts.append('免费')
+        if result.get('activity_type'):
+            parts.append('/'.join(result['activity_type'][:3]))
+        return ' | '.join(parts) if parts else '信息不足'
+
+
+# ===========================================================================
+# 批量处理
+# ===========================================================================
+
+
+def parse_batch(texts: list[str]) -> list[dict]:
+    """批量解析多条文本"""
+    pipeline = DataPipeline()
+    results = []
+    for i, text in enumerate(texts):
+        result = pipeline.parse(text)
+        result['_index'] = i
+        results.append(result)
+    return results
+
+
+def parse_and_save(texts: list[str], output_path: str):
+    """批量解析并保存为 JSON"""
+    results = parse_batch(texts)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    logger.info(f"解析结果已保存: {output_path}")
+    return results
+
+
+# ===========================================================================
+# 测试
+# ===========================================================================
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+
+    # 测试样例
+    sample = """
+活动时间：5月24日（周日）15:00-19:00
+活动地点：北京市海淀区五道口附近（具体地址报名后通知）
+活动类型：大型单身联谊会，八分钟轮桌约会
+费用：男118元/人，女78元/人
+报名方式：添加微信 love2024 报名
+活动规模：350人
+目标人群：85后-00后，本硕博
+主办方：京城盛恋
     """
-    基于地址字符串的启发式精准度判定。
-    精确特征：有门牌号、楼层、具体建筑物名
-    模糊特征：含"附近"、"周边"、"一带"、"区域" 等词
-    """
-    fuzzy_markers = ["附近", "周边", "一带", "区域", "旁边", "左右", "附近商圈"]
-    for marker in fuzzy_markers:
-        if marker in address:
-            return False
 
-    # 有门牌号或具体楼层号 → 精确
-    if re.search(r"[座号栋]\d+|楼$|\d+层|F$|\d+号", address):
-        return True
-
-    # 默认：不精确
-    return False
-
-
-def geocode_amap(address: str, city: str = "北京") -> dict:
-    """
-    调用高德地理编码 API，返回 {"lat": float, "lng": float, "is_precise": bool}。
-
-    当 API Key 不可用时，自动回退到 Mock 映射表。
-    """
-    if AMAP_KEY == "YOUR_AMAP_KEY_HERE":
-        return _geocode_mock(address)
-
-    try:
-        resp = requests.get(
-            GEOCODE_URL,
-            params={
-                "key": AMAP_KEY,
-                "address": address,
-                "city": city,
-                "output": "JSON",
-            },
-            timeout=REQUEST_TIMEOUT,
-        )
-        data = resp.json()
-
-        if data.get("status") == "1" and data.get("geocodes"):
-            geo = data["geocodes"][0]
-            location = geo["location"]  # "116.4703,39.9042"
-            lng_str, lat_str = location.split(",")
-            lat, lng = float(lat_str), float(lng_str)
-
-            # 高德返回的 level 字段辅助判断精度
-            # "门牌号" / "兴趣点" / "道路" / "区县" 等
-            level = geo.get("level", "")
-            is_precise = level in ("门牌号", "兴趣点", "POI")
-
-            return {"lat": lat, "lng": lng, "is_precise": is_precise}
-        else:
-            print(f"  [WARN] 高德API返回异常: {data.get('info', 'unknown')}，回退 Mock")
-            return _geocode_mock(address)
-    except Exception as e:
-        print(f"  [WARN] 高德API请求失败: {e}，回退 Mock")
-        return _geocode_mock(address)
-
-
-def _geocode_mock(address: str) -> dict:
-    """Mock 地理编码（开发环境下使用）"""
-    if address in MOCK_GEOCODE_MAP:
-        lat, lng, is_precise = MOCK_GEOCODE_MAP[address]
-        return {"lat": lat, "lng": lng, "is_precise": is_precise}
-
-    # 未命中 mock 映射 → 用启发式判定
-    print(f"  [WARN] Mock 未覆盖地址: {address}，使用启发式判定")
-    return {
-        "lat": ORIGIN_LAT,
-        "lng": ORIGIN_LNG,
-        "is_precise": _is_likely_precise(address),
-    }
-
-
-def enrich_geocode(activity: dict) -> dict:
-    """
-    为单个活动填充地理坐标与精准度标记。
-    修改原 dict 并返回。
-    """
-    geo = geocode_amap(activity["address_raw"])
-    activity["lat"] = round(geo["lat"], 6)
-    activity["lng"] = round(geo["lng"], 6)
-    activity["is_precise"] = geo["is_precise"]
-    return activity
-
-
-# ─────────────────────────────────────────────────────────
-# 3. 色调分类器
-# ─────────────────────────────────────────────────────────
-
-
-def classify_tone(raw_text: str, tags: list = None) -> tuple:
-    """
-    基于 raw_text 中的关键词命中情况，返回 (tone_tag, keywords_hit)。
-
-    tone_tag ∈ {"cold", "warm", "neutral"}
-
-    规则：
-      - 同时命中 cold 和 warm → "neutral"
-      - 仅命中 cold       → "cold"
-      - 仅命中 warm       → "warm"
-      - 均未命中          → "neutral"
-    """
-    cold_hits = [kw for kw in COLD_KEYWORDS if kw in raw_text]
-    warm_hits = [kw for kw in WARM_KEYWORDS if kw in raw_text]
-
-    if cold_hits and warm_hits:
-        tone = "neutral"
-        all_hits = cold_hits + warm_hits
-    elif cold_hits:
-        tone = "cold"
-        all_hits = cold_hits
-    elif warm_hits:
-        tone = "warm"
-        all_hits = warm_hits
-    else:
-        tone = "neutral"
-        all_hits = []
-
-    return tone, all_hits
-
-
-def enrich_tone(activity: dict) -> dict:
-    """为单个活动填充色调标签与命中关键词"""
-    tone, hits = classify_tone(activity.get("essence_text", ""))
-    activity["tone_tag"] = tone
-    activity["tone_keywords_hit"] = hits
-    return activity
-
-
-# ─────────────────────────────────────────────────────────
-# 4. 精华文本提取
-# ─────────────────────────────────────────────────────────
-
-
-def extract_essence(raw: dict) -> str:
-    """
-    从 raw_text 中提取活动精华描述。
-    当前策略：取 raw_text 前 100 字作为摘要，兼顾完整性与简洁性。
-    后续可升级为 NLP 摘要模型。
-    """
-    text = raw.get("raw_text", "")
-    if len(text) <= 100:
-        return text
-    # 截取前 100 字，并在完整句号处截断
-    truncated = text[:120]
-    last_period = max(truncated.rfind("。"), truncated.rfind("；"))
-    if last_period > 50:
-        return truncated[: last_period + 1]
-    return truncated[:100] + "…"
-
-
-def enrich_essence(activity: dict, raw: dict) -> dict:
-    """填充精华文本"""
-    activity["essence_text"] = extract_essence(raw)
-    return activity
-
-
-# ─────────────────────────────────────────────────────────
-# 5. 管线主函数
-# ─────────────────────────────────────────────────────────
-
-
-def run_pipeline(raw_events: list) -> list:
-    """
-    执行完整数据管线：解析 → 地理编码 → 色调分类 → 精华提取
-
-    Args:
-        raw_events: SAMPLE_EVENTS 格式的原始活动列表
-
-    Returns:
-        list[dict]: 符合 Activity Schema 的活动列表
-    """
-    print("=" * 60)
-    print("Phase 1: 数据管线启动")
-    print("=" * 60)
-
-    parsed = []
-
-    for i, raw in enumerate(raw_events):
-        event_id = f"evt_202605_{i + 1:03d}"
-        print(f"\n[{i + 1}/{len(raw_events)}] 处理: {raw['title']}")
-
-        # Step 1: 基础解析
-        activity = parse_activity(raw, event_id)
-        print(f"  → 时间: {activity['start_time']} ~ {activity['end_time']}")
-        print(f"  → 费用: ¥{activity['fee']} | 人数: {activity['participant_count']}")
-
-        # Step 2: 精华文本提取
-        activity = enrich_essence(activity, raw)
-        print(f"  → 精华: {activity['essence_text'][:50]}...")
-
-        # Step 3: 色调分类
-        activity = enrich_tone(activity)
-        print(f"  → 色调: {activity['tone_tag']} | 关键词: {activity['tone_keywords_hit']}")
-
-        # Step 4: 地理编码
-        activity = enrich_geocode(activity)
-        pin_type = "精确图钉" if activity["is_precise"] else "模糊热力圈"
-        print(f"  → 坐标: ({activity['lat']}, {activity['lng']}) | {pin_type}")
-
-        parsed.append(activity)
-
-    print(f"\n管线完成：共解析 {len(parsed)} 个活动\n")
-    return parsed
-
-
-def save_parsed(events: list, filepath: str = None) -> str:
-    """保存解析结果到 JSON 文件"""
-    if filepath is None:
-        filepath = str(Path(DATA_DIR) / "parsed_events.json")
-
-    Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(events, f, ensure_ascii=False, indent=2)
-
-    print(f"已保存 parsed_events.json → {filepath}")
-    return filepath
-
-
-# ─────────────────────────────────────────────────────────
-# 直接运行测试
-# ─────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    from sample_data import SAMPLE_EVENTS
-
-    events = run_pipeline(SAMPLE_EVENTS)
-    save_parsed(events)
-    print(f"\n示例第一条活动：")
-    print(json.dumps(events[0], ensure_ascii=False, indent=2))
+    pipeline = DataPipeline()
+    result = pipeline.parse(sample)
+    print(json.dumps(result, ensure_ascii=False, indent=2))

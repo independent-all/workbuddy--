@@ -1,260 +1,290 @@
 """
-周末交友战术指挥舱 — 主编排脚本
-──────────────────────────────
-串联 Phase 1 → Phase 2 → Phase 3 三大管线，
-输出符合 Schema v1.0 规范的 week_schedule.json。
-
-用法:
-  python main.py
-
-输出:
-  output/week_schedule.json — 前端直接加载的静态数据文件
+============================================================================
+ main.py — 周末约会战术指挥中心 · 总控入口
+============================================================================
+ 流程:
+   Step 0: 环境自检（Playwright / EasyOCR / IMA 凭证）
+   Step 1: 调用 ima_sync 从腾讯 IMA 知识库实时拉取并渲染/OCR
+   Step 2: 调用 data_pipeline 结构化解析
+   Step 3: 生成最终数据集 → output/week_schedule.json
+   Step 4: (可选) 推送到 GitHub
+============================================================================
 """
 
-import json
+import os
 import sys
-from datetime import datetime, date
+import json
+import logging
+import argparse
 from pathlib import Path
+from datetime import datetime
 
-# 添加 src 目录到路径
+# main.py 位于 src/ 子目录，项目根目录为其上层
 SRC_DIR = Path(__file__).parent
+PROJECT_ROOT = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
 
-# 项目根目录
-PROJECT_ROOT = SRC_DIR.parent
+from ima_sync import IMASyncEngine, DATING_KD_ID
+from data_pipeline import DataPipeline
 
-from data_pipeline import run_pipeline, save_parsed
-from transit_engine import run_transit_engine, save_day_schedules
-from conflict_engine import run_conflict_engine, save_conflicts
-from ima_importer import scan_and_import
-from config import (
-    ORIGIN_ADDRESS,
-    ORIGIN_LAT,
-    ORIGIN_LNG,
-    OUTPUT_DIR,
-    DATA_DIR,
-)
+logger = logging.getLogger(__name__)
+
+OUTPUT_DIR = PROJECT_ROOT / 'output'
+FINAL_OUTPUT = OUTPUT_DIR / 'week_schedule.json'
 
 
-def get_week_label(dates: list) -> str:
-    """从活动日期列表中推断 ISO 周标签，如 '2026-W21'"""
-    if not dates:
-        return ""
-    first_date = min(dates)
-    d = date.fromisoformat(first_date)
-    iso_year, iso_week, _ = d.isocalendar()
-    return f"{iso_year}-W{iso_week:02d}"
+# ===========================================================================
+# 环境自检
+# ===========================================================================
 
 
-def annotate_global_ids(week_schedule: dict) -> dict:
-    """
-    为整周所有活动按 start_time 升序赋予全局唯一编号 global_id。
-
-    遍历 friday → saturday → sunday 的 timeline，
-    提取所有 type=="activity" 的条目，按时间排序，
-    依次赋予 global_id = 1, 2, 3, ... N。
-
-    修改原 dict 并返回。
-    """
-    # 收集所有活动（保持 timeline 原始顺序即已按时间排序）
-    all_activities = []
-    for day_key in ["friday", "saturday", "sunday"]:
-        day = week_schedule["days"].get(day_key, {})
-        for item in day.get("timeline", []):
-            if item.get("type") == "activity":
-                all_activities.append(item)
-
-    # 按 start_time 升序二次确认排序
-    all_activities.sort(key=lambda a: a["start_time"])
-
-    # 分配全局编号
-    for i, act in enumerate(all_activities, 1):
-        act["global_id"] = i
-
-    print(f"\n[global_id] 已为 {len(all_activities)} 个活动分配全局编号 1~{len(all_activities)}")
-    for act in all_activities:
-        print(f"  #{act['global_id']:02d} {act['start_time'][:16]}  {act['name']}")
-
-    return week_schedule
-
-
-def assemble_week_schedule(parsed_events: list,
-                           day_schedules: dict,
-                           conflict_groups: dict) -> dict:
-    """
-    组装最终 WeekSchedule JSON（Schema v1.0）。
-
-    将 conflict_groups 挂载到对应 day_schedule 上，
-    封装顶层元数据，并注入全局编号 global_id。
-    """
-    # 收集所有活动日期
-    dates = [e["start_time"][:10] for e in parsed_events]
-    week_label = get_week_label(dates)
-
-    # 将冲突组注入各日
-    days = {}
-    for day_key in ["friday", "saturday", "sunday"]:
-        schedule = day_schedules.get(day_key, {})
-        conflicts = conflict_groups.get(day_key, [])
-
-        days[day_key] = {
-            "date": schedule.get("date", ""),
-            "day_label": day_key,
-            "day_label_cn": schedule.get("day_label_cn", ""),
-            "timeline": schedule.get("timeline", []),
-            "conflict_groups": conflicts,
-        }
-
-    week_schedule = {
-        "$schema": "urn:tactical-dating:schema:1.0",
-        "version": "1.0.0",
-        "generated_at": datetime.now().astimezone().isoformat(),
-        "origin": {
-            "address": ORIGIN_ADDRESS,
-            "lat": ORIGIN_LAT,
-            "lng": ORIGIN_LNG,
-        },
-        "week": week_label,
-        "days": days,
+def check_environment() -> dict:
+    """检查运行环境是否就绪"""
+    status = {
+        'playwright': False,
+        'easyocr': False,
+        'ima_credentials': False,
+        'chromium': False,
     }
 
-    # ── 注入全局唯一编号 ──
-    week_schedule = annotate_global_ids(week_schedule)
+    # Playwright
+    try:
+        from playwright.sync_api import sync_playwright
+        status['playwright'] = True
+    except ImportError:
+        pass
 
-    return week_schedule
+    # EasyOCR
+    try:
+        import easyocr
+        status['easyocr'] = True
+    except ImportError:
+        pass
+
+    # IMA 凭证
+    try:
+        from ima_sync import IMAClient
+        IMAClient()
+        status['ima_credentials'] = True
+    except Exception:
+        pass
+
+    # Chromium
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            status['chromium'] = True
+    except Exception:
+        pass
+
+    return status
 
 
-def print_summary(week_schedule: dict):
-    """打印最终汇总报告"""
+# ===========================================================================
+# 主流程
+# ===========================================================================
+
+
+def main(
+    kb_name: str = '陈伟霆相亲库',
+    kb_id: str = DATING_KD_ID,
+    max_items: int = 0,
+    skip_scrape: bool = False,
+    push_to_github: bool = False,
+):
+    """
+    主入口：从 IMA 知识库拉取 → 抓取 → 解析 → 输出
+    """
+    # ---- Step 0: 环境自检 ----
+    logger.info("Step 0: 环境自检...")
+    env_status = check_environment()
+    for key, ok in env_status.items():
+        icon = '✅' if ok else '❌'
+        logger.info(f"  {icon} {key}")
+    if not all(env_status.values()):
+        logger.error("环境未就绪，请运行 auto_deploy.bat 安装依赖")
+        sys.exit(1)
+
+    # ---- Step 1: IMA 同步 ----
+    logger.info(f"Step 1: 从 IMA 知识库「{kb_name}」拉取内容...")
+    engine = IMASyncEngine(kb_id=kb_id, kb_name=kb_name, output_dir=OUTPUT_DIR)
+
+    if skip_scrape:
+        # 只获取列表，不抓取
+        logger.info("  (跳过抓取，仅获取媒体列表)")
+        all_items = engine.client.get_all_media(kb_id)
+        logger.info(f"  共 {len(all_items)} 条媒体")
+        records = []
+    else:
+        records = engine.sync(max_items=max_items)
+
+    # ---- Step 2: 结构化解析 ----
+    logger.info("Step 2: 结构化解析...")
+    pipeline = DataPipeline()
+    structured_data = []
+
+    for record in records:
+        entry = {
+            'global_id': f"ACT-{record.index:03d}",
+            'title': record.title,
+            'source_type': record.source_type,
+            'source_url': record.url,
+            'folder_path': record.folder_path,
+            'error': record.error,
+        }
+
+        if record.parsed_data:
+            entry.update(record.parsed_data)
+        elif record.raw_text:
+            # 重新解析一次
+            entry.update(pipeline.parse(record.raw_text))
+
+        structured_data.append(entry)
+
+    # ---- Step 3: 生成最终输出 ----
+    logger.info("Step 3: 生成最终数据集...")
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    output = {
+        'meta': {
+            'generated_at': datetime.now().isoformat(),
+            'source': f'IMA 知识库: {kb_name}',
+            'kb_id': kb_id,
+            'total_items': len(structured_data),
+            'items_with_content': sum(1 for d in structured_data if not d.get('error')),
+            'items_with_error': sum(1 for d in structured_data if d.get('error')),
+        },
+        'activities': structured_data,
+    }
+
+    # 保存为 week_schedule.json
+    with open(FINAL_OUTPUT, 'w', encoding='utf-8') as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+    logger.info(f"  最终数据已保存: {FINAL_OUTPUT}")
+
+    # 同时保存一个带时间戳的副本
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    archive_path = OUTPUT_DIR / f'week_schedule_{timestamp}.json'
+    with open(archive_path, 'w', encoding='utf-8') as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+    # ---- Step 4: GitHub 推送 ----
+    if push_to_github:
+        logger.info("Step 4: 推送到 GitHub...")
+        _push_to_github(output)
+
+    # ---- 完成 ----
+    _print_final_summary(output)
+    return output
+
+
+def _push_to_github(output: dict):
+    """提交并推送到 GitHub"""
+    import subprocess
+
+    try:
+        # 检查是否在 git 仓库中
+        result = subprocess.run(
+            ['git', 'rev-parse', '--git-dir'],
+            capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+        )
+        if result.returncode != 0:
+            logger.warning("当前不在 git 仓库中，跳过 GitHub 推送")
+            return
+
+        # 添加 output 目录下的文件
+        subprocess.run(
+            ['git', 'add', 'output/'],
+            capture_output=True, cwd=str(PROJECT_ROOT),
+        )
+
+        # 提交
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+        commit_msg = f'[auto] IMA sync: {output["meta"]["total_items"]} items @ {timestamp}'
+        result = subprocess.run(
+            ['git', 'commit', '-m', commit_msg],
+            capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+        )
+
+        if 'nothing to commit' in result.stdout or 'nothing to commit' in result.stderr:
+            logger.info("  没有变更，跳过推送")
+            return
+
+        # 推送
+        result = subprocess.run(
+            ['git', 'push'],
+            capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+        )
+        if result.returncode == 0:
+            logger.info("  ✅ 已推送到 GitHub")
+        else:
+            logger.warning(f"  推送失败: {result.stderr}")
+
+    except FileNotFoundError:
+        logger.warning("未找到 git 命令，跳过 GitHub 推送")
+    except Exception as e:
+        logger.warning(f"GitHub 推送失败: {e}")
+
+
+def _print_final_summary(output: dict):
+    """打印最终摘要"""
+    meta = output['meta']
+    activities = output['activities']
+
+    # 统计
+    type_counts = {}
+    for a in activities:
+        for t in a.get('activity_type', []):
+            type_counts[t] = type_counts.get(t, 0) + 1
+        if not a.get('activity_type'):
+            type_counts['未分类'] = type_counts.get('未分类', 0) + 1
+
+    free_count = sum(1 for a in activities if a.get('is_free'))
+    with_location = sum(1 for a in activities if a.get('activity_location'))
+
     print("\n" + "=" * 60)
-    print("📊 周末交友战术指挥舱 — 汇总报告")
+    print(f"  🎯 周末约会战术指挥中心 — 数据同步完成")
     print("=" * 60)
-    print(f"原点:    {ORIGIN_ADDRESS} ({ORIGIN_LAT}, {ORIGIN_LNG})")
-    print(f"周次:    {week_schedule['week']}")
-    print(f"生成时间: {week_schedule['generated_at']}")
+    print(f"  📊 总活动数:     {meta['total_items']}")
+    print(f"  ✅ 有效内容:     {meta['items_with_content']}")
+    print(f"  ❌ 异常条目:     {meta['items_with_error']}")
+    print(f"  🆓 免费活动:     {free_count}")
+    print(f"  📍 有地点信息:   {with_location}")
+    print(f"  📁 输出文件:     {FINAL_OUTPUT}")
     print("-" * 60)
-
-    total_activities = 0
-    total_conflicts = 0
-    total_distance = 0.0
-    total_transit_min = 0
-
-    for day_key in ["friday", "saturday", "sunday"]:
-        day = week_schedule["days"].get(day_key, {})
-        timeline = day.get("timeline", [])
-        conflicts = day.get("conflict_groups", [])
-
-        activities = [t for t in timeline if t["type"] == "activity"]
-        spacers = [t for t in timeline if t["type"] == "transit_spacer"]
-
-        act_count = len(activities)
-        spacer_count = len(spacers)
-        conf_count = len(conflicts)
-
-        total_activities += act_count
-        total_conflicts += conf_count
-
-        day_km = sum(s["distance_km"] for s in spacers)
-        day_min = sum(s["duration_min"] for s in spacers)
-        total_distance += day_km
-        total_transit_min += day_min
-
-        print(f"\n{day.get('day_label_cn', day_key)} ({day.get('date', '无活动')}):")
-        print(f"  活动: {act_count} 场 | 转场: {spacer_count} 次 | 冲突: {conf_count} 组")
-
-        for i, act in enumerate(activities, 1):
-            tone_icon = {"cold": "🔵", "warm": "🟠", "neutral": "⚪"}
-            icon = tone_icon.get(act.get("tone_tag", "neutral"), "⚪")
-            score = act.get("value_score", "—")
-            print(f"    {i}. {icon} {act['name']}")
-            print(f"       {act['start_time'][11:16]}~{act['end_time'][11:16]} "
-                  f"| ¥{act['fee']} | {act['participant_count']}人 | 性价比{score}分")
-
-        for sp in spacers:
-            print(f"       └ {sp['display_label']}")
-
-    print(f"\n{'=' * 60}")
-    print(f"总计: {total_activities} 场活动 | {total_conflicts} 个冲突组 | "
-          f"转场 {total_distance:.1f}km / {total_transit_min}min")
-    print(f"输出文件: output/week_schedule.json")
-    print(f"{'=' * 60}\n")
-
-
-def load_real_events() -> list:
-    """
-    从项目根目录的 ima_notes 文件夹加载真实笔记数据。
-
-    若 ima_notes 不存在，自动创建空文件夹并打印醒目提示。
-    返回标准活动记录列表，若无可解析笔记则退出程序。
-    """
-    notes_dir = PROJECT_ROOT / "ima_notes"
-
-    if not notes_dir.exists():
-        notes_dir.mkdir(parents=True, exist_ok=True)
-        print("\n" + "=" * 64)
-        print("\033[93m  ⚠ [提示] ima_notes 文件夹已自动创建。\033[0m")
-        print("\033[93m  请将真实的 IMA 相亲笔记 (.md / .txt) 放入该文件夹：\033[0m")
-        print(f"\033[93m  {notes_dir.absolute()}\033[0m")
-        print("=" * 64 + "\n")
-        sys.exit(0)
-
-    print(f"\n📂 扫描笔记目录: {notes_dir.absolute()}")
-    events = scan_and_import(str(notes_dir))
-
-    if not events:
-        print("\n" + "=" * 64)
-        print("\033[91m  ❌ [错误] ima_notes 文件夹中未找到可解析的笔记文件。\033[0m")
-        print("\033[93m  请将真实的 IMA 相亲笔记 (.md / .txt) 放入该文件夹后重试。\033[0m")
-        print(f"\033[93m  {notes_dir.absolute()}\033[0m")
-        print("=" * 64 + "\n")
-        sys.exit(0)
-
-    print(f"✅ 成功解析 {len(events)} 条真实活动记录\n")
-    return events
-
-
-def main():
-    """主编排入口"""
-    print("╔══════════════════════════════════════════════════════╗")
-    print("║     周末交友战术指挥舱 · 数据处理管道 v2.0          ║")
-    print("╚══════════════════════════════════════════════════════╝")
-
-    # ── Phase 0: 加载真实笔记数据 ──
-    real_events = load_real_events()
-
-    # ── Phase 1: 数据管线 ──
-    parsed = run_pipeline(real_events)
-    save_parsed(parsed)
-
-    # ── Phase 2: 转场矩阵 ──
-    day_schedules = run_transit_engine(parsed)
-    save_day_schedules(day_schedules)
-
-    # ── Phase 3: 冲突检测 ──
-    conflict_groups = run_conflict_engine(day_schedules)
-    save_conflicts(conflict_groups)
-
-    # ── 组装最终输出 ──
-    print("\n" + "=" * 60)
-    print("组装最终 week_schedule.json (Schema v1.0)")
+    print(f"  🏷️  活动类型分布:")
+    for t, c in sorted(type_counts.items(), key=lambda x: -x[1]):
+        print(f"     {t}: {c} 个")
     print("=" * 60)
 
-    week_schedule = assemble_week_schedule(parsed, day_schedules, conflict_groups)
 
-    # 写入输出
-    output_path = Path(OUTPUT_DIR) / "week_schedule.json"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+# ===========================================================================
+# CLI
+# ===========================================================================
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(week_schedule, f, ensure_ascii=False, indent=2)
+if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%H:%M:%S',
+    )
 
-    print(f"✅ 已生成 week_schedule.json → {output_path}")
+    parser = argparse.ArgumentParser(
+        description='周末约会战术指挥中心 — 从 IMA 知识库全自动拉取并解析活动数据'
+    )
+    parser.add_argument('--kb', default='陈伟霆相亲库', help='知识库名称')
+    parser.add_argument('--kb-id', default=DATING_KD_ID, help='知识库 ID')
+    parser.add_argument('--max', type=int, default=0, help='最大处理条数 (0=全部)')
+    parser.add_argument('--skip-scrape', action='store_true', help='跳过抓取，仅获取列表')
+    parser.add_argument('--push', action='store_true', help='推送到 GitHub')
 
-    # ── 汇总报告 ──
-    print_summary(week_schedule)
-
-    return week_schedule
-
-
-if __name__ == "__main__":
-    main()
+    args = parser.parse_args()
+    main(
+        kb_name=args.kb,
+        kb_id=args.kb_id,
+        max_items=args.max,
+        skip_scrape=args.skip_scrape,
+        push_to_github=args.push,
+    )

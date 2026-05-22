@@ -1,0 +1,791 @@
+{
+  "meta": {
+    "kb_name": "陈伟霆相亲库",
+    "kb_id": "QDwLweZ4q6hKWAUOLc4oQxMjM-EVf1kPKFZy--cmrYk=",
+    "sync_time": "2026-05-22T12:04:07.337241",
+    "total_items": 25,
+    "with_url": 25,
+    "with_text": 23,
+    "with_error": 0
+  },
+  "records": [
+    {
+      "index": 1,
+      "title": "Screenshot_2026-05-21-01-23-40-476_com.tencent.mm.jpg",
+      "media_id": "img_83eb24185d8abb2a771add2f664d17db_8c2850d3414565b3bc6789b18c3c840b7462816478952586",
+      "source_type": "img",
+      "url": "https://res-skb.ima.qq.com/5/dDkYBK8CwVpykeVaY16N4D/29133e81-fa88-4a2f-987a-d865963df95e.jpg?media_id=img_83eb24185d8abb2a771add2f664d17db_8c2850d3414565b3bc6789b18c3c840b7462816478952586&media_title=Screenshot_2026-05-21-01-23-40-476_com.tencent.mm.jpg&sign=4f9a2faf2e6b86907fc66371b0e1e85b8b8a4ed3&t=6a0fdc50",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "场8分钟的寻爱冒险|友行友派\n#恋爱\n#相亲\n#单身\n活动需要实名认证\n1281人\n2026.05.24\n北京市\n|区朝\n号昆泰嘉华酒店\n活动余位\n男生余位\n女生余位\n23\n13 人\n10\n活动票种\n下方卡片选择票种\n特惠票\n此票种88元\n符合特惠票要求之\n需要补差价哦\n早鸟票\n128/人\n羊50|超级会员\n单身活动10次卡\n500/人\n友行友派\n刚装修的新家美\n Boloni家装设计工坊\n活动详",
+      "raw_text_length": 934,
+      "parsed_data": {
+        "activity_title": "活动需要实名认证",
+        "activity_time": "14:30-18:00; 05.; 28/; 00/",
+        "activity_location": "北京",
+        "activity_type": [
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "88元",
+        "is_free": false,
+        "registration": "",
+        "capacity": "1281人; 13 人",
+        "target_group": [
+          "京户",
+          "名校",
+          "海归",
+          "京房"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "14:30-18:00; 05.; 28 | 北京 | 88元 | 派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 2,
+      "title": "好友@你一起参与【【thupku专场】2.0社交局】活动",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_47039ce876ba1b3ad94c5236a6374fe67462816478952586",
+      "source_type": "weburl",
+      "url": "https://www.themarryapp.com/mpa/activity/detail?activityId=VWc1uy56fNFhcHsmBaEMRNYjshsSSLLrCp8ScV60GEQ~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "enrollEndTime: 1779257460000\nenrollStartTime: 1777529460000\n活动时间: 05月23日(周六)14:00 - 17:00\n客服微信名: 看准小助手-赛赛（真人版）\ninnerActivityLabel: 2\nlikeStatisticTime: 1779551940000\n分享标题: 【点击报名】thupku研究生专属社交局\n分享内容: 趣",
+      "raw_text_length": 454,
+      "parsed_data": {
+        "activity_title": "活动时间: 05月23日(周六)14:00 - 17:00",
+        "activity_time": "活动时间: 05月23日(周六)14:00 - 17:00; 14:00 - 17:00; 05月23日; 2.; 周六",
+        "activity_location": "五道口某清吧（具体地址进群通知）",
+        "activity_type": [
+          "桌游",
+          "联谊/相亲"
+        ],
+        "cost": "",
+        "is_free": false,
+        "registration": "",
+        "capacity": "",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "活动时间: 05月23日(周六)14:0 | 五道口某清吧（具体地址进群通知 | 桌游/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 3,
+      "title": "Screenshot_2026-05-21-01-33-19-759_com.tencent.mm.jpg",
+      "media_id": "img_83eb24185d8abb2a771add2f664d17db_cb861e023aebbb6ca8d1bc9c12c9cbfe7462816478952586",
+      "source_type": "img",
+      "url": "https://res-skb.ima.qq.com/5/dDkYBK8CwVpykeVaY16N4D/6e3eabeb-f449-4cc7-a7b7-256186c26c2d.jpg?media_id=img_83eb24185d8abb2a771add2f664d17db_cb861e023aebbb6ca8d1bc9c12c9cbfe7462816478952586&media_title=Screenshot_2026-05-21-01-33-19-759_com.tencent.mm.jpg&sign=2773d7650645e583cf676db2a33950999f8d59b6&t=6a0fdc51",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "1:33\n看准\n刘明\n邀请你\n起参加这个活动\n撒糖恋爱所 SaTangLab\n2026\n95同龄专场 线上相遇\n线上\n百人心动互选\n85\n年-95年专场\n(进群参与)\n85-95年之间\n线上心动互选\n北京地区\n85-95\n05月23曰(周六)10:00\n19:00\n线上活动,\n进群参与\n活动客服\n撒糖恋爱所 所长\n添加\n活动报名\n132人\n已报名\n和你非常匹配的嘉宾\n已认证\n曾是互联网HRBP, ",
+      "raw_text_length": 1204,
+      "parsed_data": {
+        "activity_title": "起参加这个活动",
+        "activity_time": "05月; 5/; 4/; 周六",
+        "activity_location": "~活动; 海淀区",
+        "activity_type": [
+          "桌游",
+          "徒步/爬山",
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "专属券报名",
+        "is_free": false,
+        "registration": "(含二维码)",
+        "capacity": "132人; 50人以",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "05月; 5/; 4/; 周六 | ~活动; 海淀区 | 专属券报名 | 桌游/徒步/爬山/派对/酒会"
+      },
+      "error": ""
+    },
+    {
+      "index": 4,
+      "title": "好友@你一起参与【【北京】心动放风大会】活动",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_f35631043177cb85253fb6e4ca23e1c67462816478952586",
+      "source_type": "weburl",
+      "url": "https://www.themarryapp.com/mpa/activity/detail?activityId=R7u-gK2Jo1zRYOCAtSNtHwiGd54WJI3q-xumQmphp_o~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "enrollEndTime: 1779607800000\nenrollStartTime: 1778059800000\n活动时间: 05月24日(周日)14:00 - 17:30\ninnerActivityLabel: 3\nlikeStatisticTime: 1779638340000\n分享标题: 出来放风 顺便心动\n分享内容: 出来放风 顺便心动\n朋友圈文案: 出来放风 顺便心动\nshowRe",
+      "raw_text_length": 440,
+      "parsed_data": {
+        "activity_title": "活动时间: 05月24日(周日)14:00 - 17:30",
+        "activity_time": "活动时间: 05月24日(周日)14:00 - 17:30; 14:00 - 17:30; 05月24日; 周日",
+        "activity_location": "北京超极合生汇东区LG0层超极现场（穹顶下）",
+        "activity_type": [
+          "联谊/相亲"
+        ],
+        "cost": "",
+        "is_free": false,
+        "registration": "",
+        "capacity": "",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "活动时间: 05月24日(周日)14:0 | 北京超极合生汇东区LG0层超极 | 联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 5,
+      "title": "[05.23 周六]奥森轻奢露营|天幕桌椅+野餐+飞盘+掼蛋+童年游戏+麻将+王者+各种桌游+剧本杀+躲猫猫=你的超级周末！",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_7bff6cce31d6e565c7db97c6d1c68bfe7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/BpEuJR8MElqmg8eJS2314Q",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "[05.23 周六]奥森轻奢露营|天幕桌椅+野餐+飞盘+掼蛋+童年游戏+麻将+王者+各种桌游+剧本杀+躲猫猫=你的超级周末！\n北京初心户外旅行\n 2026年5月20日 19:55 北京\n\n还在烦恼周末去哪嗨？\n\n厌倦了千篇一律的剧本杀和密室？🤔\n\n想认识有趣的新朋友又怕尬聊？🙈\n\nAttention！\n\n帝都18-38岁的活力青年们注意啦！👋 \n\n一个超酷、超chill、超好玩的 \n\n\n「城市绿洲",
+      "raw_text_length": 2369,
+      "parsed_data": {
+        "activity_title": "[05.23 周六]奥森轻奢露营|天幕桌椅+野餐+飞盘+掼蛋+童年游戏+麻将+王者+各种桌游+剧本杀+躲猫猫=你的超级周末！",
+        "activity_time": "活动时间：13:30~18:00; 13:30~18:00; 05.; 5月20日; 1.",
+        "activity_location": "奥森公园北园",
+        "activity_type": [
+          "露营/户外",
+          "桌游",
+          "运动",
+          "联谊/相亲"
+        ],
+        "cost": "5元/; 48元/",
+        "is_free": false,
+        "registration": "微信：16619854597; (含二维码)",
+        "capacity": "",
+        "target_group": [
+          "00后"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "活动时间：13:30~18:00; 13 | 奥森公园北园 | 5元/; 48元/ | 露营/户外/桌游/运动"
+      },
+      "error": ""
+    },
+    {
+      "index": 6,
+      "title": "5.23日周六颜值打分局丨请颜值中等偏上的务必要来（真实打分，当场出分），前三名送超大福利！",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_17c63ceaa2ebc855493037da4ba389487462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/tSPDI3dJhdSPq5WGZV-wfA",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "5.23日周六颜值打分局丨请颜值中等偏上的务必要来（真实打分，当场出分），前三名送超大福利！\n迷路的腿\n 2026年5月18日 12:26 北京\n相亲小考\nWE NEED YOU\n\n\n\n\n\n\n腿姐平台 \n\n\n\n\n颜值打分局\n\n\n等∕你∕面∕对∕真∕实∕自∕己\n男女前三送超大福利\n01\n相亲小考\n\n\n\n\n\n\n\n\n\n\n\n\n\n来相亲绝大多数是想走进婚姻，那婚姻是多维度的考量！\n\n始于颜值，终于的是条件、",
+      "raw_text_length": 1733,
+      "parsed_data": {
+        "activity_title": "来相亲绝大多数是想走进婚姻，那婚姻是多维度的考量！",
+        "activity_time": "活动时间：\n\n5月23日 15：30-18:30; 15：30-18:30; 5.23日; 5月18日; 5月23日",
+        "activity_location": "北京; 北京",
+        "activity_type": [
+          "桌游",
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "周一~周三：149元/人（早鸟）; 149元/; 169元/",
+        "is_free": true,
+        "registration": "(含二维码)",
+        "capacity": "60人",
+        "target_group": [
+          "京户",
+          "硕士",
+          "海归",
+          "京房"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "活动时间：\n\n5月23日 15：30-1 | 北京; 北京 | 周一~周三：149元/人（早鸟 | 桌游/派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 7,
+      "title": "好友@你一起参与【【北京名校专场】2.0社交局】活动",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_86440a178cf8a6012ebaf868fa00b1b37462816478952586",
+      "source_type": "weburl",
+      "url": "https://www.themarryapp.com/mpa/activity/detail?activityId=3cx3KIkvzj39btnypxM0XwSgLH9uS6EI5GE0xdjXie0~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "enrollEndTime: 1779258060000\nenrollStartTime: 1777530060000\n活动时间: 05月24日(周日)14:00 - 17:00\n客服微信名: 看准小助手-赛赛（真人版）\ninnerActivityLabel: 2\nlikeStatisticTime: 1779638340000\n分享标题: 【点击报名】北京TOP高校研究生/校友专属社交局\n分享内",
+      "raw_text_length": 467,
+      "parsed_data": {
+        "activity_title": "活动时间: 05月24日(周日)14:00 - 17:00",
+        "activity_time": "活动时间: 05月24日(周日)14:00 - 17:00; 14:00 - 17:00; 05月24日; 2.; 周日",
+        "activity_location": "五道口某清吧（具体地址进群通知）",
+        "activity_type": [
+          "桌游",
+          "联谊/相亲"
+        ],
+        "cost": "",
+        "is_free": false,
+        "registration": "",
+        "capacity": "",
+        "target_group": [
+          "名校"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "活动时间: 05月24日(周日)14:0 | 五道口某清吧（具体地址进群通知 | 桌游/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 8,
+      "title": "5.24周日北京之恋-90后00后为主-专场精品联谊会",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_addba1ea64b7405e6739772c9944bc087462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/pxbt5wovy2JOJCdlf5tAgQ",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "5.24周日北京之恋-90后00后为主-专场精品联谊会\n原创 嘉恋 嘉恋\n 2026年5月18日 21:53 河北\n\n\n\n\n❤️🍎各位亲，感谢关注”嘉恋”，“嘉恋”以北京本硕博、央企、国企、公务员、事业编、教师、医生、互联网、外企、公司老板为主，顶尖名校、高资产、高收入、高颜值优秀中青年会员多，欢迎各界朋友踊跃入会，汇聚一堂，交友、相亲联谊、互帮互助、共创精彩！\n\n\n\n\n\n\n\n\n\n\n\n\n\n❤️📣5",
+      "raw_text_length": 1255,
+      "parsed_data": {
+        "activity_title": "5.24周日北京之恋-90后00后为主-专场精品联谊会",
+        "activity_time": "活动时间:2026年5月24日周日15:00到18:00; 15:00到18:00; 5.; 5月18日; 5.",
+        "activity_location": "北京三里屯地铁站附近",
+        "activity_type": [
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "男生128元/人，女生前20名报名118元/人，含活动组织及; 128元/; 118元/",
+        "is_free": false,
+        "registration": "💕没时间出门社交找对象？足不出户，; 微信：bjlysp; (含二维码)",
+        "capacity": "350人",
+        "target_group": [
+          "名校",
+          "90后",
+          "00后"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "活动时间:2026年5月24日周日15: | 北京三里屯地铁站附近 | 男生128元/人，女生前20名 | 派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 9,
+      "title": "【5.22周五晚国贸90后95后名校海归名企高颜值微醺单身之夜，20人小规模活动】",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_9961e1ac62238c0fbc04ea5b3648418c7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/k2XoyCRgVkoOI1bc7DiN8g",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "【5.22周五晚国贸90后95后名校海归名企高颜值微醺单身之夜，20人小规模活动】\n屿见心动计划\n 2026年5月20日 13:02 北京\n\n\n\n\nHappy Day‌\n\n周五单身酒会\n\n微醺脱单派对\n\n去班味  破圈子   微醺  情话畅聊\n\n\n\n\n\n\n\n\n\n\n\n\n\nweekly Friday cocktail party\n\n\n\n\nTime：2026/5/22\n\n周五：20：00-24：00\n\n",
+      "raw_text_length": 2404,
+      "parsed_data": {
+        "activity_title": "【5.22周五晚国贸90后95后名校海归名企高颜值微醺单身之夜，20人小规模活动】",
+        "activity_time": "时间：5.22本周五; 20：00-24：00; 23：00-0:00; 20:00-22:00; 19:00-20:00",
+        "activity_location": "朝阳区国贸CBD; 朝阳区",
+        "activity_type": [
+          "派对/酒会",
+          "联谊/相亲",
+          "艺术/电影"
+        ],
+        "cost": "99元/",
+        "is_free": true,
+        "registration": "",
+        "capacity": "20人; 00\n\n人",
+        "target_group": [
+          "95后",
+          "海归",
+          "90后",
+          "名校"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "时间：5.22本周五; 20：00-24 | 朝阳区国贸CBD; 朝阳区 | 99元/ | 派对/酒会/联谊/相亲/艺术/电影"
+      },
+      "error": ""
+    },
+    {
+      "index": 10,
+      "title": "【帝都0524】动心K歌，掼蛋大冒险KTV八分钟",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_b6ebe391c75baf8ccdcef0ac5407ab4b7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/rhx19z3aF2wuCI9zoHTnNg",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "【帝都0524】动心K歌，掼蛋大冒险KTV八分钟\n帝都线下 陌上花开HIMMR北京\n 2026年5月20日 21:00 北京\n\n点击下图报名参加～\n\n​\n陌上花开HIMMR北京\n赞\n分享\n推荐\n写留言",
+      "raw_text_length": 100,
+      "parsed_data": {
+        "activity_title": "【帝都0524】动心K歌，掼蛋大冒险KTV八分钟",
+        "activity_time": "5月20日",
+        "activity_location": "北京; 北京",
+        "activity_type": [
+          "八分钟速配",
+          "桌游",
+          "KTV/唱歌"
+        ],
+        "cost": "",
+        "is_free": false,
+        "registration": "",
+        "capacity": "",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "5月20日 | 北京; 北京 | 八分钟速配/桌游/KTV/唱歌"
+      },
+      "error": ""
+    },
+    {
+      "index": 11,
+      "title": "前200人享特价！5月24日『京城盛恋』年度超大型相亲会|350名优质83-05单身|爱情转盘（8分钟约会）|坐标五道口 - 爱旅",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_fa2bca07111f0c7910d46c681be43e347462816478952586",
+      "source_type": "weburl",
+      "url": "https://bjailv.360jlb.cn/event?id=855218",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "",
+      "raw_text_length": 0,
+      "parsed_data": {},
+      "error": ""
+    },
+    {
+      "index": 12,
+      "title": "【北京5.24周日】爵士&电影之夜｜单身微醺派对，邂逅浪漫时刻",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_64eb185a493860fc54ca745d171611337462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/iVnbM250NJK9GS4Kjvq0hw",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "【北京5.24周日】爵士&电影之夜｜单身微醺派对，邂逅浪漫时刻\nYuuSii名校社交\n 2026年5月16日 19:00 澳大利亚\n\n\n\n\n\n\n\n关于活动\n\n\n\n\n在红酒的微醺里\n\n在爵士乐的慵懒中\n\n在电影的光影里 或许\n\n那个让你怦然心动的TA就在此刻\n\n\n\n\n北京的初夏 夜色渐浓\n\n城市的喧嚣褪去 灯光变得柔和\n\n\n\n\n一曲爵士乐在空间里流淌\n\n酒杯轻轻摇晃\n\n光影在脸上明明暗暗—这不是电影",
+      "raw_text_length": 1444,
+      "parsed_data": {
+        "activity_title": "【北京5.24周日】爵士&电影之夜｜单身微醺派对，邂逅浪漫时刻",
+        "activity_time": "19:00-19:30; 19:30-20:00; 20:00-20:30; 20:30-22:00; 19:00-22:00",
+        "activity_location": "朝阳区",
+        "activity_type": [
+          "八分钟速配",
+          "桌游",
+          "派对/酒会",
+          "KTV/唱歌",
+          "联谊/相亲",
+          "艺术/电影"
+        ],
+        "cost": "168元/; 198元/; 228 元/",
+        "is_free": false,
+        "registration": "(含二维码)",
+        "capacity": "",
+        "target_group": [
+          "名校",
+          "高知"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "19:00-19:30; 19:30-2 | 朝阳区 | 168元/; 198元/; 2 | 八分钟速配/桌游/派对/酒会"
+      },
+      "error": ""
+    },
+    {
+      "index": 13,
+      "title": "5.24 | 初夏出逃计划 综艺式露营派对",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_c8fb5cdcc53b2e1dec0536ed846e00d67462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/UBz1T5R9Qv8O3UseXJQtTQ",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "5.24 | 初夏出逃计划 综艺式露营派对\n启彦青年 启彦青年\n 2026年5月20日 06:55 北京\n\n         这个周末，与其闷在屋里刷手机，不如把自己交给户外！\n\n我们备好了趣味爆棚的综艺游戏，还有一群有趣的灵魂等你来偶遇。\n\n抓住五月中下旬的黄金天气，\n\n来一场说走就走的初夏露营派对吧\n\n\n\n\n\n👇。\n\n\n\n\n\n\n\n\n启彦青年 城市逃离计划\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+      "raw_text_length": 1074,
+      "parsed_data": {
+        "activity_title": "5.24 | 初夏出逃计划 综艺式露营派对",
+        "activity_time": "活动时间：\n\n5月24日 周日 14：30-19：00; 14：30-19：00; 5.; 5月20日; 85/",
+        "activity_location": "北京市 朝阳区东北四环附近 露营营地; 朝阳区",
+        "activity_type": [
+          "露营/户外",
+          "桌游",
+          "派对/酒会",
+          "运动",
+          "联谊/相亲",
+          "艺术/电影"
+        ],
+        "cost": "",
+        "is_free": true,
+        "registration": "",
+        "capacity": "",
+        "target_group": [
+          "海归"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "活动时间：\n\n5月24日 周日 14：3 | 北京市 朝阳区东北四环附近 露 | 免费 | 露营/户外/桌游/派对/酒会"
+      },
+      "error": ""
+    },
+    {
+      "index": 14,
+      "title": "好友@你一起参与【北京·朝阳公园猫鼠游戏】活动",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_24790d25c2e376f378548e48e7f165bd7462816478952586",
+      "source_type": "weburl",
+      "url": "https://www.themarryapp.com/mpa/activity/detail?activityId=AxmndTCQ_aFliVywW91FIbkAva8ftu5QqnRzu6cXxZU~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "enrollEndTime: 1779519600000\nenrollStartTime: 1776939540000\n活动时间: 05月23日(周六)14:00 - 17:00\n客服微信名: 撒糖恋爱所 所长\ninnerActivityLabel: 2\nlikeStatisticTime: 1779546000000\n分享标题: 趣相遇|猫鼠游戏·北京朝阳公园单身追逐\n分享内容: 趣相遇|猫鼠游",
+      "raw_text_length": 487,
+      "parsed_data": {
+        "activity_title": "活动时间: 05月23日(周六)14:00 - 17:00",
+        "activity_time": "活动时间: 05月23日(周六)14:00 - 17:00; 14:00 - 17:00; 05月23日; 周六",
+        "activity_location": "北京市朝阳区朝阳公园东四门集合; 朝阳区",
+        "activity_type": [
+          "露营/户外",
+          "徒步/爬山",
+          "联谊/相亲"
+        ],
+        "cost": "",
+        "is_free": false,
+        "registration": "",
+        "capacity": "",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "活动时间: 05月23日(周六)14:0 | 北京市朝阳区朝阳公园东四门集合 | 露营/户外/徒步/爬山/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 15,
+      "title": "甜蜜一夏，速来活动脱单",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_8ce7511b7b651a50df08b4b97a7b2a767462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/DI0ue1XOwS1gv5zKxeOjGQ",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "甜蜜一夏，5月速来活动脱单！\n搭搭桥\n 2026年5月20日 19:19 北京 标题已修改\n\n\n\n\n\n\n\n单身福利-寻找有眼缘的Ta！\n\n5月23-24日单身库开放日\n\n线下认证送：\n\n活动优惠券+1V1介绍机会\n\n提前预约，仅限10名~\n\n\n\n\n// //\n\n\n\n\n固定布局\n\n工具条上设置固定宽高，\n\n背景可以设置被包含，\n可以完美对齐背景图和文字，\n\n以及用于模板制作。\n\n01.\n\n5月22日",
+      "raw_text_length": 1557,
+      "parsed_data": {
+        "activity_title": "甜蜜一夏，5月速来活动脱单！",
+        "activity_time": "20:00-22:00; 9:30-16:10; 14:30-17:30; 5月; 5月20日",
+        "activity_location": "朝阳区; 朝阳区",
+        "activity_type": [
+          "八分钟速配",
+          "桌游",
+          "派对/酒会",
+          "KTV/唱歌",
+          "联谊/相亲"
+        ],
+        "cost": "1元",
+        "is_free": true,
+        "registration": "",
+        "capacity": "30人; 40人",
+        "target_group": [
+          "95后"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "20:00-22:00; 9:30-16 | 朝阳区; 朝阳区 | 1元 | 八分钟速配/桌游/派对/酒会"
+      },
+      "error": ""
+    },
+    {
+      "index": 16,
+      "title": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_42b0610533003434c989f57fde83dd7b7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/k50xVcHQq14eudh1AzO7mQ",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险\n情书纪\n 2026年5月20日 15:33 北京\n\n\n\n\n\n\n\n\n\n\n集结百位\n\n优质单身男女\n\n211/985院校 本硕博学位\n\n\n各互联网大厂：\n\n字节，小米，美团，百度等\n\n企事业单位：\n\n研究院，设计院，公务员，教师，医护工作者\n\n\n\n\n认识一个人，不仅仅是需要TA对你的表达\n\n更多的应该是我们相处的细节\n\n细节决定成",
+      "raw_text_length": 2150,
+      "parsed_data": {
+        "activity_title": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险",
+        "activity_time": "14：30-18：00; 5.; 5月20日; 11/; 周日",
+        "activity_location": "北京; 北京",
+        "activity_type": [
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "999元",
+        "is_free": false,
+        "registration": "(含二维码)",
+        "capacity": "100人; 1000人",
+        "target_group": [
+          "京户",
+          "名校",
+          "海归",
+          "京房"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "14：30-18：00; 5.; 5月2 | 北京; 北京 | 999元 | 派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 17,
+      "title": "5.23日周六【趣味桌游+成长派对・随手拍 】｜摄影心动盲盒交友局来袭！",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_093ecfce67c5911156e3914f3cbc833f7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/VaiG16jPSzPdCDpT4yY11Q",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "5.23日周六【趣味桌游+成长派对・随手拍 】｜摄影心动盲盒交友局来袭！\n遇见你订阅号\n 2026年5月20日 13:36 北京\n\n\n\n\n\n\n\n成长派对-随手拍\n\n\n\n\n用摄影打破陌生，用相遇治愈孤单✨\n\n\n\n\n脱单只是锦上添花，蜕变自己才是终身底气，不只为遇见另一半，更为遇见更有气质、更懂生活、更有魅力的自己。\n\n\n\n\n我们不单单只是做交友，更想带着大家拓宽生活边界、多维度提升自己，在社交、审美",
+      "raw_text_length": 879,
+      "parsed_data": {
+        "activity_title": "5.23日周六【趣味桌游+成长派对・随手拍 】｜摄影心动盲盒交友局来袭！",
+        "activity_time": "时间：2026 年 5 月 23 ; 14:00-16:00; 16:00-18:00; 18:00-19:00; 5.23日",
+        "activity_location": "东大桥附近（报名后通知详细地址，交通超便利）",
+        "activity_type": [
+          "桌游",
+          "派对/酒会",
+          "联谊/相亲",
+          "艺术/电影"
+        ],
+        "cost": "会员免费，首次体验99，非首次体验299",
+        "is_free": true,
+        "registration": "",
+        "capacity": "规模：40",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "时间：2026 年 5 月 23 ; 1 | 东大桥附近（报名后通知详细地址 | 会员免费，首次体验99，非首次 | 桌游/派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 18,
+      "title": "单身交友 | 5.24周日90后00后来集合！专场精品联谊，和心动的TA品咖啡、玩桌游！",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_8c70d995ab9bdad02f887c25f83513297462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/5ugorZ-o7caTO-22874fGA",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "单身交友 | 5.24周日90后00后来集合！专场精品联谊，和心动的TA品咖啡、玩桌游！\n有为有道恋爱家\n 2026年5月18日 22:34 北京\n\n点击蓝字 关注我们\n\n\n\n\n\n\n\n\n\n\n\n\n\n时间给90后00后悄悄标上了注脚\n\n最大的00后，已经走过了26个春秋；最大的90后，竟已站在了36岁的门口。\n\n时间像忽明忽暗的站台，我们埋头赶路，一晃就来到了这个年纪。\n\n\n\n\n曾以为青春很长，长到可",
+      "raw_text_length": 2404,
+      "parsed_data": {
+        "activity_title": "单身交友 | 5.24周日90后00后来集合！专场精品联谊，和心动的TA品咖啡、玩桌游！",
+        "activity_time": "活动时间：2026.5.24 周日下午14:30-18:00; 14:30-18:00; 5.; 5月18日; 5.",
+        "activity_location": "三里屯（以具体通知为准）",
+        "activity_type": [
+          "八分钟速配",
+          "桌游",
+          "派对/酒会",
+          "联谊/相亲",
+          "艺术/电影",
+          "讲座/沙龙"
+        ],
+        "cost": "128元/人; 128元/; 108元/",
+        "is_free": false,
+        "registration": "(含二维码)",
+        "capacity": "40人",
+        "target_group": [
+          "90后",
+          "00后"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "活动时间：2026.5.24 周日下午1 | 三里屯（以具体通知为准） | 128元/人; 128元/;  | 八分钟速配/桌游/派对/酒会"
+      },
+      "error": ""
+    },
+    {
+      "index": 19,
+      "title": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险|友行友派",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_1af4b8e4a9b32b99ea9dbbc5a11e92e17462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/Tdnhy9z3GwYQ7zdqvt2DfA?from=timeline&scene=2&subscene=1&sessionid=1779291307&clicktime=1779297259&enterid=1779297259#wechat_redirect",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险|友行友派\n友行友派YoParty\n 2026年5月17日 21:55 北京\n\n\n\n\n\n\n\n\n\n\n邂 逅 / 爱 情\n\nLOVE单身派对·百人联谊\n\n在这个繁忙的生活中\n\n如何找到那个陪伴你走过四季的特别的人？\n\n友派为你精心策划了这场！\n\n\n\n\n单身交友活动\n\n\n\n\n\n\n\n集结百位\n\n优质单身男女\n\n211/985院校 本硕博",
+      "raw_text_length": 2225,
+      "parsed_data": {
+        "activity_title": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险|友行友派",
+        "activity_time": "14：30-18：00; 14:00-14:30; 5.; 5月17日; 11/",
+        "activity_location": "北京",
+        "activity_type": [
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "168元/人; 168元/; 128元/",
+        "is_free": false,
+        "registration": "",
+        "capacity": "100人; 2对",
+        "target_group": [
+          "京户",
+          "名校",
+          "海归",
+          "京房"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "14：30-18：00; 14:00-1 | 北京 | 168元/人; 168元/;  | 派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 20,
+      "title": "5.30北京第92场【百人场】联谊，开启报名！（现享受早鸟价）",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_0168a98471c06a67f3c2853727f37e2d7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/RDKmfBoRtkPa7sIb8R3Ulw",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "5.30北京第92场【百人场】联谊，开启报名！（现享受早鸟价）\n恋爱森林\n 2026年5月20日 20:42 北京\n5.16举办了第91场【百人场】活动\n一共报名了102位\n男女比依然是1：1\n来看下活动现场图\n\n\n(5.16活动现场图)\n\n\n下一场的活动在5.30号\n【百人场】能认识100位嘉宾！\n抓住能认识新人的每一次机会哈\n座位有限，一定要尽早报名！\n👇大家可以扫码报名👇\n新人体验价是59元",
+      "raw_text_length": 1232,
+      "parsed_data": {
+        "activity_title": "5.30北京第92场【百人场】联谊，开启报名！（现享受早鸟价）",
+        "activity_time": "14:00-17:00; 5.; 5月20日; 5.",
+        "activity_location": "北京; 北京",
+        "activity_type": [
+          "八分钟速配",
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "59元; 129元; 159元",
+        "is_free": true,
+        "registration": "(含二维码)",
+        "capacity": "100人; 100人",
+        "target_group": [
+          "博士",
+          "95后",
+          "硕士",
+          "00后"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "14:00-17:00; 5.; 5月2 | 北京; 北京 | 59元; 129元; 159元 | 八分钟速配/派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 21,
+      "title": "同学之约 | 5.24 五道口 高知群体单身联谊",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_be0d96600f391c17217cfdd0e2bab3fb7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/sm5vGgfhgmZcCu9Pg8CcLQ",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "同学之约 | 5.24 五道口 高知群体单身联谊\n同学之约\n 2026年5月21日 12:31 北京\n\n同学之约\n\n如 果 · 爱\n\n\n\n\n节日回来\n\n相信很多人已经经历\n\n七大姑八大姨的询问、父母的威逼\n\n单身狗\n\n鸭梨山大\n\n\n\n\n\n\n\n对此\n\n我们不能再对父母敷衍了事\n\n心动不如行动！\n\n你来不来，她就在这边。\n\n\n\n\n\n\n\n同学之约\n\n陪你度过\n\n想要遇见爱情的小伙伴，\n\n赶紧报名啦！\n\n",
+      "raw_text_length": 9226,
+      "parsed_data": {
+        "activity_title": "同学之约 | 5.24 五道口 高知群体单身联谊",
+        "activity_time": "时间：活动开始前1小时（女生或男生名额满得情况下会提前关闭报名系统）; 13：30-17：00; 5.; 5月21日; 5月23日",
+        "activity_location": "海淀区",
+        "activity_type": [
+          "露营/户外",
+          "桌游",
+          "徒步/爬山",
+          "派对/酒会",
+          "运动",
+          "联谊/相亲",
+          "艺术/电影",
+          "讲座/沙龙"
+        ],
+        "cost": "30元/; 148元/; 118元/",
+        "is_free": true,
+        "registration": "(含二维码)",
+        "capacity": "80人",
+        "target_group": [
+          "京房",
+          "硕士",
+          "高知"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "时间：活动开始前1小时（女生或男生名额满 | 海淀区 | 30元/; 148元/; 11 | 露营/户外/桌游/徒步/爬山"
+      },
+      "error": ""
+    },
+    {
+      "index": 22,
+      "title": "看简历，见真人，直接谈|千人脱单大集",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_c7c3a01c612f496480d496f56448e31b7462816478952586",
+      "source_type": "weburl",
+      "url": "https://www.themarryapp.com/mpa/activity/detail?activityId=FXSZq9JzszrWpLSeEeVUGLl5AuLs_H18utlwE9Bi_K0~&inviterId&channelId",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "enrollEndTime: 1780131600000\nenrollStartTime: 1777458480000\n活动时间: 05月30日(周六)14:00 - 17:00\n客服微信名: 撒糖恋爱所 所长\ninnerActivityLabel: 8\nlikeStatisticTime: 1780241280000\n分享标题: 看简历，见真人，直接谈|千人脱单大集\n分享内容: 看简历，见真人，",
+      "raw_text_length": 445,
+      "parsed_data": {
+        "activity_title": "活动时间: 05月30日(周六)14:00 - 17:00",
+        "activity_time": "活动时间: 05月30日(周六)14:00 - 17:00; 14:00 - 17:00; 05月30日; 周六",
+        "activity_location": "活动地点后续同步",
+        "activity_type": [
+          "派对/酒会"
+        ],
+        "cost": "",
+        "is_free": false,
+        "registration": "",
+        "capacity": "",
+        "target_group": [],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": false,
+        "summary": "活动时间: 05月30日(周六)14:0 | 活动地点后续同步 | 派对/酒会"
+      },
+      "error": ""
+    },
+    {
+      "index": 23,
+      "title": "腾讯ima - 明止的知识库",
+      "media_id": "weburl_83eb24185d8abb2a771add2f664d17db_eb6a1ec7b3fa0e7f39d30fc8413d0d4d7462816478952586",
+      "source_type": "weburl",
+      "url": "https://ima.qq.com/wikis",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "",
+      "raw_text_length": 0,
+      "parsed_data": {},
+      "error": ""
+    },
+    {
+      "index": 24,
+      "title": "重磅官宣！果壳鹊桥受邀作为技术支持方， 深度参与“海淀有缘・为 AI 而生” 科技青年交友活动",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_c0aeddaf441d68eb1747d20577e897817462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/ZFcKI4cslCW6mzP2zNkIvg",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "重磅官宣！果壳鹊桥受邀作为技术支持方， 深度参与“海淀有缘・为 AI 而生” 科技青年交友活动\n果壳鹊桥\n 2026年5月20日 12:21 北京\n\n\n\n\n\n\n\n\n\n\n\nI LOVE YOU\n\n\n\n\n\n海淀有缘\n\n为AI而生\n\n\n\n\n\n\n\n\n科技青年情感支持交友活动\n\n\n\n\n\n\n\n\n\n\n\n果壳鹊桥助力海淀科技青年\n\n缔结同频良缘\n\n\n\n\n\n果壳鹊桥交出高知青年脱单答卷\n\n\n\n\n\n近日，果壳鹊桥将作",
+      "raw_text_length": 2313,
+      "parsed_data": {
+        "activity_title": "重磅官宣！果壳鹊桥受邀作为技术支持方， 深度参与“海淀有缘・为 AI 而生” 科技青年交友活动",
+        "activity_time": "活动时间：2026年5月24日（星期日）15:30—19:00; 15:30—19:00; 9:00-18:00; 5月20日; 6月",
+        "activity_location": "北京AI原点社区; 海淀区; 海淀区",
+        "activity_type": [
+          "派对/酒会",
+          "联谊/相亲"
+        ],
+        "cost": "",
+        "is_free": true,
+        "registration": "(含二维码)",
+        "capacity": "200人",
+        "target_group": [
+          "高知"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "活动时间：2026年5月24日（星期日） | 北京AI原点社区; 海淀区;  | 免费 | 派对/酒会/联谊/相亲"
+      },
+      "error": ""
+    },
+    {
+      "index": 25,
+      "title": "大桂拉尖 | 5月23日，易县“小黄山”，邂逅太行秘境与天外飞来石",
+      "media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_9a4877ea716e51c33c92786f5444973c7462816478952586",
+      "source_type": "wechatarticle",
+      "url": "https://mp.weixin.qq.com/s/OeMpvUgdhd6572hZcLnoxg",
+      "folder_path": "(根目录)",
+      "raw_text_preview": "大桂拉尖 | 5月23日，易县“小黄山”，邂逅太行秘境与天外飞来石\n北京户外驴友俱乐部\n 2026年5月18日 14:00 北京\n北京野狼户外，一个以年轻人为主的户外俱乐部，每周发布登山露营，户外旅行活动。\n\n大桂拉尖在河北保定易县富岗乡的太行山怀抱中，藏着一座近两年在户外圈悄然走红的秘境——大桂拉尖。海拔约1066米的山峰不算高耸入云，却凭借着嶙峋怪石、苍劲松林与极目千里的开阔视野，赢得了“保定",
+      "raw_text_length": 2520,
+      "parsed_data": {
+        "activity_title": "北京野狼户外，一个以年轻人为主的户外俱乐部，每周发布登山露营，户外旅行活动。",
+        "activity_time": "5月23日; 5月18日",
+        "activity_location": "北京; 北京",
+        "activity_type": [
+          "露营/户外",
+          "徒步/爬山",
+          "艺术/电影"
+        ],
+        "cost": "108元/人; 108元/",
+        "is_free": false,
+        "registration": "(含二维码)",
+        "capacity": "",
+        "target_group": [
+          "京户"
+        ],
+        "organizer": "",
+        "source_mp": "",
+        "has_qr_code": true,
+        "summary": "5月23日; 5月18日 | 北京; 北京 | 108元/人; 108元/ | 露营/户外/徒步/爬山/艺术/电影"
+      },
+      "error": ""
+    }
+  ]
+}
