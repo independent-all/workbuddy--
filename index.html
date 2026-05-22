@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>周末交友战术指挥舱 v6.0 — 纯外部 JSON 加载</title>
+<title>周末交友战术指挥舱 v7.0 — 深度重构版</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
 /* ============================================================
-   周末交友战术指挥舱 v6.0
-   A区(左50%): Master-Detail 图文海报 + 全局筛选
-   B区(右上50%): 大地图 + 编号图钉
-   C区(右下50%): C4冲突/气象面板(66.6%) + C1/C2/C3甘特图(33.3%)
+   周末交友战术指挥舱 v7.0
+   A区: Master-Detail 图文海报 + 全局筛选 + 联系方式高亮
+   B区: 大地图 + 编号图钉
+   C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图蛇形轨道
    三区 global_id 联动
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,6 +30,11 @@
   --radius-sm: 6px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --transition: 0.2s ease;
+  /* 新增颜色 */
+  --next-week-bg: rgba(59,130,246,0.08);
+  --next-week-border: rgba(96,165,250,0.35);
+  --weekday-bg: rgba(34,197,94,0.08);
+  --weekday-border: rgba(34,197,94,0.35);
 }
 
 body {
@@ -65,7 +70,7 @@ body {
   display: flex; flex: 1; overflow: hidden;
 }
 
-/* ─────── A区: 左侧图文总览 (Master-Detail) ─────── */
+/* ─────── A区 ─────── */
 .zone-a {
   width: 50%; min-width: 0;
   display: flex; flex-direction: column;
@@ -73,7 +78,7 @@ body {
   background: var(--bg);
 }
 
-/* ── 筛选 Tab 栏（100%宽度） ── */
+/* ── 筛选 Tab 栏 ── */
 .filter-bar {
   display: flex; flex-shrink: 0;
   background: var(--surface);
@@ -118,23 +123,18 @@ body {
 .sr-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
 .sr-bar-fill.cold { background: linear-gradient(90deg, #1e3a5f, #3b82f6); }
 .sr-bar-fill.warm { background: linear-gradient(90deg, #92400e, #f59e0b); }
-.sr-bar-count { font-size: 10px; font-weight: 500; min-width: 22px; }
 
 /* ── A区 Master-Detail 主体 ── */
 .zone-a-body {
   flex: 1; display: flex; overflow: hidden;
   min-height: 0;
 }
-
-/* 全局模式：Detail隐藏，List 100% */
 .zone-a-body.global-mode .a-detail { display: none; }
 .zone-a-body.global-mode .a-list { width: 100%; }
-
-/* 分日模式：Detail 50% + List 50% */
 .zone-a-body.day-mode .a-detail { display: flex; width: 50%; }
 .zone-a-body.day-mode .a-list { width: 50%; }
 
-/* ── A区 Detail 详情面板（左） ── */
+/* ── A区 Detail 详情面板 ── */
 .a-detail {
   display: none; flex-direction: column;
   background: var(--surface);
@@ -155,7 +155,6 @@ body {
 .ad-placeholder .ad-ph-icon { font-size: 48px; opacity: 0.4; }
 .ad-placeholder .ad-ph-text { font-size: 13px; letter-spacing: 1px; }
 
-/* 详情内容 */
 .ad-header {
   display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px;
 }
@@ -183,8 +182,9 @@ body {
 .ad-tone-tag.cold { background: rgba(30,58,138,0.7); border: 1px solid rgba(59,130,246,0.5); color: #93c5fd; }
 .ad-tone-tag.warm { background: rgba(146,64,14,0.7); border: 1px solid rgba(245,158,11,0.5); color: #fcd34d; }
 .ad-tone-tag.neutral { background: rgba(55,65,81,0.7); border: 1px solid rgba(156,163,175,0.5); color: #d1d5db; }
+.ad-tone-tag.next-week { background: rgba(59,130,246,0.7); border: 1px solid rgba(96,165,250,0.5); color: #93c5fd; }
+.ad-tone-tag.weekday { background: rgba(34,197,94,0.7); border: 1px solid rgba(34,197,94,0.5); color: #86efac; }
 
-/* 详情子段 */
 .ad-section { margin-bottom: 18px; }
 .ad-section-title {
   font-size: 10px; font-weight: 500; color: var(--muted);
@@ -198,6 +198,46 @@ body {
 .ad-info-lbl { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; }
 .ad-info-val { font-size: 14px; font-weight: 500; color: #fff; }
 .ad-info-val.large { font-size: 18px; font-weight: 700; }
+
+/* ── 联系方式高亮区 ── */
+.ad-contact-highlight {
+  padding: 14px 16px; background: var(--surface2);
+  border-radius: var(--radius); border: 2px solid var(--gold);
+  margin-bottom: 18px;
+}
+.ad-contact-highlight .ad-ch-label {
+  font-size: 9px; color: var(--gold); letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 8px;
+  font-weight: 600;
+}
+.ad-contact-highlight .ad-ch-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ad-contact-highlight .ad-ch-row:last-child { border-bottom: none; }
+.ad-contact-highlight .ad-ch-icon {
+  font-size: 16px; flex-shrink: 0; width: 24px; text-align: center;
+}
+.ad-contact-highlight .ad-ch-val {
+  font-size: 22px; font-weight: 800; color: #fff;
+  letter-spacing: 1px; word-break: break-all;
+  line-height: 1.3;
+}
+.ad-contact-highlight .ad-ch-val.small { font-size: 15px; }
+.ad-contact-highlight .ad-ch-sub {
+  font-size: 10px; color: var(--muted); margin-top: 2px;
+}
+
+/* 二维码展示 */
+.ad-qr-container {
+  display: flex; justify-content: center; margin-top: 12px;
+}
+.ad-qr-container img {
+  max-width: 160px; max-height: 160px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  background: #fff; padding: 4px;
+}
 
 .ad-essence {
   font-size: 13px; line-height: 1.8; color: rgba(255,255,255,0.75);
@@ -214,31 +254,10 @@ body {
 .ad-full-text::-webkit-scrollbar { width: 4px; }
 .ad-full-text::-webkit-scrollbar-track { background: transparent; }
 .ad-full-text::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.ad-images-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px; margin-top: 10px;
-}
-.ad-images-grid img {
-  width: 100%; height: auto; border-radius: var(--radius-sm);
-  border: 1px solid var(--border); cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition);
-}
-.ad-images-grid img:hover {
-  transform: scale(1.03); box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-}
 .ad-core {
   font-size: 12px; line-height: 1.6; color: rgba(255,255,255,0.7);
   padding: 10px 14px; background: var(--surface2); border-radius: var(--radius);
 }
-.ad-score-row {
-  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-  background: var(--surface2); border-radius: var(--radius);
-}
-.ad-score-big { font-size: 28px; font-weight: 800; }
-.ad-score-big.high { color: var(--success); }
-.ad-score-big.mid { color: var(--gold); }
-.ad-score-big.low { color: var(--danger); }
-.ad-score-breakdown { font-size: 10px; color: var(--muted); line-height: 1.6; }
 .ad-link {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; color: var(--accent); text-decoration: none;
@@ -247,7 +266,7 @@ body {
 }
 .ad-link:hover { background: var(--surface2); }
 
-/* ── A区 List 列表面板（右） ── */
+/* ── A区 List ── */
 .a-list { overflow: hidden; display: flex; flex-direction: column; }
 .a-list .gallery-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; scroll-behavior: smooth; }
 .a-list .gallery-scroll::-webkit-scrollbar { width: 4px; }
@@ -273,7 +292,19 @@ body {
 .poster-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 1; }
 .poster-card.selected { border-color: var(--accent) !important; box-shadow: 0 0 16px rgba(96,165,250,0.4) !important; }
 
-/* Global ID 徽章 — A区左上角盾牌 */
+/* 卡片色彩区分 */
+.poster-card.next-week {
+  background: rgba(59,130,246,0.08);
+  border-color: rgba(96,165,250,0.35);
+}
+.poster-card.weekday {
+  background: rgba(34,197,94,0.08);
+  border-color: rgba(34,197,94,0.35);
+}
+.poster-card.next-week:hover { border-color: rgba(96,165,250,0.6); }
+.poster-card.weekday:hover { border-color: rgba(34,197,94,0.55); }
+
+/* Global ID 徽章 */
 .global-id-badge {
   position: absolute; z-index: 10; top: 10px; left: 10px;
   width: 34px; height: 38px;
@@ -319,6 +350,8 @@ body {
 .poster-tone.tone-cold { background: rgba(30,58,138,0.7); border: 1px solid rgba(59,130,246,0.5); color: #93c5fd; }
 .poster-tone.tone-warm { background: rgba(146,64,14,0.7); border: 1px solid rgba(245,158,11,0.5); color: #fcd34d; }
 .poster-tone.tone-neutral { background: rgba(55,65,81,0.7); border: 1px solid rgba(156,163,175,0.5); color: #d1d5db; }
+.poster-tone.tone-next { background: rgba(37,99,235,0.7); border: 1px solid rgba(96,165,250,0.5); color: #93c5fd; }
+.poster-tone.tone-wkd { background: rgba(22,163,74,0.7); border: 1px solid rgba(34,197,94,0.5); color: #86efac; }
 
 .poster-name {
   font-size: 16px; font-weight: 600; line-height: 1.3;
@@ -360,7 +393,7 @@ body {
 .poster-score.mid { color: var(--gold); }
 .poster-score.low { color: var(--danger); }
 
-/* ── 高亮态：三区通用 ── */
+/* ── 高亮态 ── */
 @keyframes highlight-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(96,165,250,0.7); }
   50% { box-shadow: 0 0 0 10px rgba(96,165,250,0); }
@@ -372,17 +405,15 @@ body {
 }
 .poster-card.highlight-active {
   box-shadow: 0 0 24px rgba(96,165,250,0.5), 0 8px 24px rgba(0,0,0,0.5) !important;
-  border-color: var(--accent) !important;
 }
 
-/* ─────── B/C区: 右侧 ─────── */
+/* ─────── B/C区 ─────── */
 .zone-bc {
   width: 50%; min-width: 0;
   display: flex; flex-direction: column;
   overflow: hidden;
 }
 
-/* B区: 右上地图 */
 .zone-b {
   height: 50%; flex-shrink: 0;
   position: relative;
@@ -404,7 +435,7 @@ body {
   filter: drop-shadow(0 0 8px rgba(96,165,250,0.9)) !important;
 }
 
-/* ─────── C区: C4 面板 + 甘特图 ─────── */
+/* ─────── C区 ─────── */
 .zone-c {
   height: 50%; flex-shrink: 0;
   display: flex; flex-direction: column;
@@ -419,9 +450,9 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-/* C4-左侧 冲突对比 (90% 宽) */
+/* C4-左 80%: 冲突对比 */
 .c4-conflict {
-  width: 90%; min-width: 0;
+  width: 80%; min-width: 0;
   overflow-y: auto; overflow-x: hidden;
   background: var(--surface);
   padding: 12px 16px;
@@ -443,25 +474,55 @@ body {
 }
 .c4c-header .c4c-gids { font-size: 10px; color: var(--muted); font-weight: 400; }
 
-/* 冲突表（内嵌版） */
 .c4c-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .c4c-table th,.c4c-table td { padding: 6px 10px; text-align: center; border-bottom: 1px solid var(--border); }
 .c4c-table th { font-weight: 500; color: var(--muted); font-size: 9px; letter-spacing: 0.5px; white-space: nowrap; }
 .c4c-table th:first-child,.c4c-table td:first-child { text-align: left; }
 .c4c-table td:first-child { font-weight: 500; color: var(--muted); font-size: 10px; }
-.c4c-table .winning { color: var(--success); font-weight: 500; }
-.c4c-table .losing { color: var(--danger); }
-.c4c-table .winner-row td { background: rgba(34,197,94,0.05); }
-.c4c-table .sc-hi { color: var(--success); font-weight: 500; }
-.c4c-table .sc-mid { color: var(--gold); font-weight: 500; }
-.c4c-table .sc-lo { color: var(--danger); font-weight: 500; }
-.c4c-recommend { display: inline-block; background: var(--success); color: #fff; font-size: 9px; padding: 2px 7px; border-radius: 8px; font-weight: 500; }
-.c4c-advice {
-  margin-top: 10px; padding: 10px 14px; background: var(--surface2);
-  border-radius: var(--radius); font-size: 11px; line-height: 1.5;
+
+/* C4-中 10%: 工作日看板 */
+.c4-weekday-board {
+  width: 10%; min-width: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow-y: auto; overflow-x: hidden;
+  padding: 8px 6px;
+}
+.c4-weekday-board::-webkit-scrollbar { width: 3px; }
+.c4-weekday-board::-webkit-scrollbar-track { background: transparent; }
+.c4-weekday-board::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.c4wb-title {
+  font-size: 9px; font-weight: 600; color: var(--success);
+  letter-spacing: 1px; text-align: center; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.c4wb-item {
+  padding: 5px 6px; margin-bottom: 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.2);
+  cursor: pointer; transition: all var(--transition);
+  font-size: 9px; line-height: 1.4;
+}
+.c4wb-item:hover { background: rgba(34,197,94,0.15); }
+.c4wb-item .c4wb-time {
+  color: var(--success); font-weight: 600; font-size: 10px;
+}
+.c4wb-item .c4wb-name {
+  color: rgba(255,255,255,0.75); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.c4wb-item.highlight-active {
+  border-color: var(--accent) !important;
+  background: rgba(96,165,250,0.12) !important;
+}
+.c4wb-empty {
+  color: var(--muted); font-size: 9px; text-align: center;
+  padding: 20px 0; opacity: 0.6;
 }
 
-/* C4-右侧 气象限行面板 (10% 宽) */
+/* C4-右 10%: 气象限行 */
 .c4-weather {
   width: 10%; min-width: 0;
   background: var(--surface);
@@ -470,23 +531,14 @@ body {
   padding: 10px 4px 8px; gap: 6px;
   overflow: hidden;
 }
-.c4w-label {
-  font-size: 11px; font-weight: 600; color: var(--accent);
-  white-space: nowrap; letter-spacing: 1px;
-}
+.c4w-label { font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; letter-spacing: 1px; }
 .c4w-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
 .c4w-desc { font-size: 10px; color: var(--text); font-weight: 500; white-space: nowrap; }
 .c4w-temp { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.4; }
 .c4w-divider { width: 60%; height: 1px; background: var(--border); flex-shrink: 0; }
 .c4w-limit-label { font-size: 8px; color: var(--muted); letter-spacing: 1px; text-align: center; }
-.c4w-limit-val {
-  font-size: 14px; font-weight: 800; color: var(--danger);
-  text-align: center; line-height: 1.2; white-space: nowrap;
-}
-.c4w-nolimit {
-  font-size: 12px; font-weight: 600; color: var(--success);
-  text-align: center; white-space: nowrap;
-}
+.c4w-limit-val { font-size: 14px; font-weight: 800; color: var(--danger); text-align: center; line-height: 1.2; white-space: nowrap; }
+.c4w-nolimit { font-size: 12px; font-weight: 600; color: var(--success); text-align: center; white-space: nowrap; }
 
 /* ── 甘特图区域 (下 33.3%) ── */
 .gantt-area {
@@ -519,7 +571,7 @@ body {
   position: relative;
 }
 
-/* ── C2/C3 活动轨道 ── */
+/* ── C2/C3/C5 活动轨道 ── */
 .gantt-tracks {
   flex: 1; min-height: 0;
   display: flex; flex-direction: column;
@@ -535,7 +587,7 @@ body {
   writing-mode: vertical-lr; letter-spacing: 1px;
 }
 
-/* ── 活动甘特块 (v5.0 降噪版) ── */
+/* ── 活动甘特块 ── */
 .gantt-block {
   position: absolute; top: 2px; bottom: 2px;
   border-radius: 5px; cursor: pointer;
@@ -563,7 +615,6 @@ body {
   box-shadow: 0 0 18px rgba(96,165,250,0.6) !important;
 }
 
-/* 甘特块内 global_id 小圆 */
 .gantt-block .gb-gid {
   flex-shrink: 0; width: 20px;
   display: flex; align-items: center; justify-content: center;
@@ -576,7 +627,6 @@ body {
   color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
-/* 甘特块文字 v5.0: 垂直三行 — 时间(大)/名称(中)/杂项(小) */
 .gantt-block .gb-content {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; justify-content: center;
@@ -599,7 +649,6 @@ body {
   line-height: 1.2;
 }
 
-/* 冲突脉冲标记 */
 @keyframes conflict-pulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(244,63,94,0.6); border-color: rgba(244,63,94,0.4); }
   50% { box-shadow: 0 0 0 5px rgba(244,63,94,0); border-color: var(--danger); }
@@ -613,10 +662,10 @@ body {
   height: 30px; flex-shrink: 0;
   position: relative;
   background: linear-gradient(to right,
-    #eab308 0%,       /* 08:00 黄 */
-    #ef4444 25%,      /* 12:00 红 */
-    #3b82f6 62.5%,    /* 18:00 蓝 */
-    #0f172a 100%      /* 24:00 深黑蓝 */
+    #eab308 0%,
+    #ef4444 25%,
+    #3b82f6 62.5%,
+    #0f172a 100%
   );
   border-top: 1px solid var(--border);
 }
@@ -646,7 +695,6 @@ body {
 .leaflet-popup-close-button { color: var(--muted)!important; }
 .leaflet-control-zoom a { background: var(--surface)!important; color: var(--text)!important; border-color: var(--border)!important; }
 
-/* ── 切换按钮 ── */
 .view-toggle {
   margin-left: auto; margin-right: 8px;
   font-size: 12px; font-weight: 500;
@@ -660,91 +708,31 @@ body {
 .view-toggle.mobile-active { background: rgba(96,165,250,0.12); border-color: var(--accent); }
 
 /* ============================================================
-   移动端响应式装甲 — .mobile-mode 专属
-   仅在 <body class="mobile-mode"> 时激活，不影响PC布局
+   移动端响应式
    ============================================================ */
 body.mobile-mode { overflow-y: auto; }
-body.mobile-mode .main {
-  flex-direction: column;
-  overflow-y: visible;
-}
-
-/* ── A区 100%宽，可滚动 ── */
-body.mobile-mode .zone-a {
-  width: 100%; min-height: auto; flex-shrink: 0;
-}
-/* 分日模式：Detail + List 上下堆叠 */
-body.mobile-mode .zone-a-body.day-mode {
-  flex-direction: column;
-}
-body.mobile-mode .zone-a-body.day-mode .a-detail {
-  width: 100%; max-height: 60vh; display: flex;
-  border-right: none; border-bottom: 1px solid var(--border);
-}
-body.mobile-mode .zone-a-body.day-mode .a-list {
-  width: 100%; max-height: 50vh;
-}
+body.mobile-mode .main { flex-direction: column; overflow-y: visible; }
+body.mobile-mode .zone-a { width: 100%; min-height: auto; flex-shrink: 0; }
+body.mobile-mode .zone-a-body.day-mode { flex-direction: column; }
+body.mobile-mode .zone-a-body.day-mode .a-detail { width: 100%; max-height: 60vh; display: flex; border-right: none; border-bottom: 1px solid var(--border); }
+body.mobile-mode .zone-a-body.day-mode .a-list { width: 100%; max-height: 50vh; }
 body.mobile-mode .zone-a-body.global-mode .a-list { width: 100%; }
-body.mobile-mode .gallery-grid {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-}
+body.mobile-mode .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 body.mobile-mode .gallery-grid.single-col { grid-template-columns: 1fr; }
-
-/* ── BC区 100%宽 ── */
 body.mobile-mode .zone-bc { width: 100%; flex-shrink: 0; }
-
-/* ── B区地图 100%宽 + 固定高度 ── */
-body.mobile-mode .zone-b {
-  width: 100%; height: 380px; flex-shrink: 0;
-  min-height: 380px;
-}
-
-/* ── C区：甘特图防挤压 + C4上下堆叠 ── */
-body.mobile-mode .zone-c {
-  height: auto; min-height: 420px; flex-shrink: 0;
-}
-/* C4冲突+气象面板上下堆叠 */
-body.mobile-mode .c4-panel {
-  flex-direction: column; min-height: 180px;
-}
-body.mobile-mode .c4-conflict {
-  width: 100%; min-height: 100px; max-height: 200px;
-}
-body.mobile-mode .c4-weather {
-  width: 100%; flex-direction: row; flex-wrap: wrap;
-  justify-content: center; gap: 8px; padding: 6px 8px;
-  border-left: none; border-top: 1px solid var(--border);
-}
+body.mobile-mode .zone-b { width: 100%; height: 380px; flex-shrink: 0; min-height: 380px; }
+body.mobile-mode .zone-c { height: auto; min-height: 420px; flex-shrink: 0; }
+body.mobile-mode .c4-panel { flex-direction: column; min-height: 180px; }
+body.mobile-mode .c4-conflict { width: 100%; min-height: 100px; max-height: 200px; }
+body.mobile-mode .c4-weekday-board { width: 100%; max-height: 120px; border-left: none; border-top: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; overflow-x: auto; overflow-y: hidden; }
+body.mobile-mode .c4-weather { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 6px 8px; border-left: none; border-top: 1px solid var(--border); }
 body.mobile-mode .c4w-divider { display: none; }
-body.mobile-mode .c4w-icon { font-size: 22px; }
-body.mobile-mode .c4w-temp { font-size: 10px; }
-body.mobile-mode .c4w-temp br { display: none; }
-body.mobile-mode .c4w-temp::after { content: ' '; }
-
-/* 甘特图横向滑动保护 */
-body.mobile-mode .gantt-container {
-  min-width: 800px;
-}
-body.mobile-mode .gantt-scroll {
-  overflow-x: auto; overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* 移动端header紧凑 */
+body.mobile-mode .gantt-container { min-width: 800px; }
+body.mobile-mode .gantt-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
 body.mobile-mode .header h1 { font-size: 12px; }
 body.mobile-mode .header .h-badge { font-size: 9px; padding: 1px 6px; }
-body.mobile-mode .header .h-origin { font-size: 9px; }
-
-/* 移动端统计通栏紧凑 */
 body.mobile-mode .stats-ribbon { gap: 8px; padding: 0 8px; }
-body.mobile-mode .sr-item .sr-val { font-size: 11px; }
-body.mobile-mode .sr-divider:nth-of-type(3) { display: none; }
-body.mobile-mode .sr-bar-lbl { font-size: 9px; }
-
-/* 移动端甘特块放大触控区 */
 body.mobile-mode .gantt-block { min-height: 32px; }
-
-/* 移动端地图图例缩小 */
 body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 </style>
 </head>
@@ -760,20 +748,17 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 
 <div class="main">
 
-  <!-- ========== A区: Master-Detail 图文海报 ========== -->
+  <!-- ========== A区 ========== -->
   <div class="zone-a">
-    <!-- 全局筛选 Tab（100%宽度） -->
     <div class="filter-bar" id="filter-bar">
-      <button class="filter-btn active" data-day="all">全局<span class="fc-badge" id="fc-all">0</span></button>
+      <button class="filter-btn active" data-day="all">全部(含工作日)<span class="fc-badge" id="fc-all">0</span></button>
       <button class="filter-btn" data-day="friday">周五<span class="fc-badge" id="fc-fri">0</span></button>
       <button class="filter-btn" data-day="saturday">周六<span class="fc-badge" id="fc-sat">0</span></button>
       <button class="filter-btn" data-day="sunday">周日<span class="fc-badge" id="fc-sun">0</span></button>
     </div>
     <div class="stats-ribbon" id="stats-ribbon"></div>
 
-    <!-- A区 Master-Detail 主体 -->
     <div class="zone-a-body global-mode" id="zone-a-body">
-      <!-- 左侧：Detail 详情面板 -->
       <div class="a-detail" id="a-detail">
         <div class="a-detail-scroll" id="a-detail-scroll">
           <div class="ad-placeholder" id="ad-placeholder">
@@ -782,7 +767,6 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
           </div>
         </div>
       </div>
-      <!-- 右侧：List 列表面板 -->
       <div class="a-list" id="a-list">
         <div class="gallery-scroll" id="gallery-scroll">
           <div class="gallery-grid" id="gallery"></div>
@@ -791,7 +775,7 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
     </div>
   </div>
 
-  <!-- ========== B/C区: 地图 + 甘特图 ========== -->
+  <!-- ========== B/C区 ========== -->
   <div class="zone-bc">
     <div class="zone-b">
       <div id="map"></div>
@@ -804,20 +788,24 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
     </div>
 
     <div class="zone-c">
-      <!-- C4 面板 (上 66.6%) -->
+      <!-- C4 面板 -->
       <div class="c4-panel">
-        <!-- C4-左 90%: 冲突对比 -->
         <div class="c4-conflict" id="c4-conflict">
           <div class="c4c-placeholder" id="c4c-placeholder">
             <div class="c4c-ph-icon">⚡</div>
             <div class="c4c-ph-text">当前未检测到战术冲突</div>
           </div>
         </div>
-        <!-- C4-右 10%: 气象限行 -->
+        <!-- 工作日看板 -->
+        <div class="c4-weekday-board" id="c4-weekday-board">
+          <div class="c4wb-title">📋 工作日看板</div>
+          <div class="c4wb-empty" id="c4wb-empty">暂无工作日活动</div>
+        </div>
+        <!-- 气象限行 -->
         <div class="c4-weather" id="c4-weather"></div>
       </div>
 
-      <!-- 甘特图区域 (下 33.3%) -->
+      <!-- 甘特图区域 -->
       <div class="gantt-area">
         <div class="gantt-day-header" id="gantt-day-header">
           <span class="gdh-label" id="gdh-label">全局 · 全部活动</span>
@@ -832,6 +820,9 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
               <div class="gantt-track" id="gantt-c3">
                 <span class="gantt-track-label">C3</span>
               </div>
+              <div class="gantt-track" id="gantt-c5">
+                <span class="gantt-track-label">C5</span>
+              </div>
             </div>
             <div class="gantt-axis" id="gantt-axis"></div>
           </div>
@@ -844,16 +835,16 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ================================================================
-// 周末交友战术指挥舱 v6.0 — 纯外部 JSON 加载，零硬编码数据
+// 周末交友战术指挥舱 v7.0 — 深度重构版
 // ================================================================
 
-// ===== 全局变量：由 loadRealData() 异步填充 =====
-let allActivities = [];           // 从 week_schedule.json 加载的完整活动数组
+// ===== 全局变量 =====
+let allActivities = [];
 let currentFilter = 'all';
-let globalIdMap = {};            // global_id(int) -> { activity, dayKey }
-let mapMarkerMap = {};           // gid(int) -> Leaflet marker
+let globalIdMap = {};
+let mapMarkerMap = {};
 let conflictIdSet = new Set();
-let conflictMap = {};            // activity_id -> conflictGroup
+let conflictMap = {};
 let selectedActivityId = null;
 let isMobileMode = false;
 
@@ -865,8 +856,10 @@ const TONE_LABELS = { cold:'🔵 严肃', warm:'🟠 轻松', neutral:'⚪ 中�
 const GANTT_START_HOUR = 8;
 const GANTT_END_HOUR = 24;
 const GANTT_TOTAL_MIN = (GANTT_END_HOUR - GANTT_START_HOUR) * 60;
+// 蛇形轨道排列: C2 → C3 → C5 → C3 → C2
+const GANTT_TRACK_ORDER = ['gantt-c2', 'gantt-c3', 'gantt-c5', 'gantt-c3', 'gantt-c2'];
 
-// ===== Mock 气象限行数据（纯展示，不含活动数据）=====
+// ===== Mock 气象限行 =====
 const WEATHER_DATA = {
   friday:   { icon: '☀️', desc: '晴', temp: '22℃ ~ 32℃', limit: '4 和 9', limitLabel: '限行尾号' },
   saturday: { icon: '⛅', desc: '多云', temp: '20℃ ~ 30℃', limit: null, limitLabel: '周末不限行' },
@@ -874,24 +867,20 @@ const WEATHER_DATA = {
   all:      { icon: '🗓️', desc: '周末天气', temp: '20℃ ~ 32℃', limit: null, limitLabel: '请选日期' },
 };
 
-// ===== 强制异步读取真实数据 =====
+// ===== 加载真实数据 =====
 async function loadRealData() {
   try {
     const response = await fetch('./week_schedule.json?t=' + new Date().getTime());
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const data = await response.json();
-
-    // 支持两种格式：{ activities: [...] } 或 { items: [...] }
     allActivities = data.activities || data.items || [];
 
     console.log('[战术指挥舱] 数据加载成功，共 ' + allActivities.length + ' 条');
-    console.log('[战术指挥舱] 数据来源:', data.meta?.source || '未知', '| 生成时间:', data.meta?.generated_at || '未知');
+    console.log('[战术指挥舱] 时间分流:', data.meta?.date_categories || 'N/A');
 
-    // 更新顶部 Badge
     document.getElementById('h-week').textContent = '实时数据';
     document.getElementById('h-gen').textContent = '共 ' + allActivities.length + ' 场活动';
 
-    // 构建索引并渲染
     buildGlobalIdMap();
     setupFilterTabs();
     applyFilter('all');
@@ -916,27 +905,12 @@ function minToPct(min) {
   return Math.max(0, Math.min(100, (min - GANTT_START_HOUR * 60) / GANTT_TOTAL_MIN * 100));
 }
 
-// ===== 从原始字段中提取时间字符串 =====
-function getActivityTime(act) {
-  // 尝试从 activity_time 字段解析 "14:00-17:00" 格式
-  const raw = act.activity_time || '';
-  const match = raw.match(/(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/);
-  if (match) {
-    return '2026-01-01T' + match[1].padStart(2,'0') + ':' + match[2] + ':00+08:00,' +
-           '2026-01-01T' + match[3].padStart(2,'0') + ':' + match[4] + ':00+08:00';
-  }
-  // 回退：使用 summary 或 title
-  return '';
-}
-
 function parseActivityTimes(act) {
-  // 返回 { start: ISO string or '', end: ISO string or '' }
   const raw = act.activity_time || '';
   const match = raw.match(/(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/);
   if (match) {
     const h1 = match[1].padStart(2,'0'), m1 = match[2];
     const h2 = match[3].padStart(2,'0'), m2 = match[4];
-    // 推断日期
     let dateStr = '2026-05-23';
     const dayRaw = raw.match(/(05月\d{1,2}日|05\.\d{1,2}|5月\d{1,2}日)/);
     if (dayRaw) {
@@ -951,19 +925,48 @@ function parseActivityTimes(act) {
   return { start: '', end: '' };
 }
 
+// ===== 时间分类：使用 date_category 字段 =====
 function getActivityDayKey(act) {
-  const raw = (act.activity_time || '') + ' ' + (act.activity_location || '') + ' ' + (act.summary || '');
+  const cat = act.date_category || 'unknown';
+  if (cat === 'friday') return 'friday';
+  if (cat === 'saturday') return 'saturday';
+  if (cat === 'sunday') return 'sunday';
+  if (cat === 'next_week') return 'next_week';
+  if (cat === 'weekday') return 'weekday';
+  // fallback：旧数据无 date_category
+  const raw = (act.activity_time || '') + ' ' + (act.activity_location || '');
   if (raw.includes('05月22日') || raw.includes('5.22') || raw.includes('周五')) return 'friday';
   if (raw.includes('05月23日') || raw.includes('5.23') || raw.includes('周六')) return 'saturday';
   if (raw.includes('05月24日') || raw.includes('5.24') || raw.includes('周日')) return 'sunday';
-  // 默认按 global_id 尾号分配做演示
-  const gidNum = parseInt((act.global_id || '0').replace(/\D/g,'')) || 0;
-  if (gidNum % 3 === 0) return 'friday';
-  if (gidNum % 3 === 1) return 'saturday';
-  return 'sunday';
+  if (raw.includes('05月30日') || raw.includes('5.30')) return 'next_week';
+  return 'unknown';
 }
 
-// ===== 构建 global_id 索引 =====
+function getActivityDayLabel(cat) {
+  const map = { friday:'周五', saturday:'周六', sunday:'周日', weekday:'工作日', next_week:'下周', unknown:'未知' };
+  return map[cat] || cat;
+}
+
+// ===== 筛选：next_week 和 weekday 只在 All 中显示 =====
+function getActivitiesByDay(filter) {
+  if (filter === 'all') return allActivities;
+
+  // 周五/周六/周日 Tab：排除 next_week 和 weekday
+  return allActivities.filter(act => {
+    const dk = getActivityDayKey(act);
+    return dk === filter;
+  });
+}
+
+function getActivityCountByDay(dayKey) {
+  return allActivities.filter(act => getActivityDayKey(act) === dayKey).length;
+}
+
+function getActivitiesForDateCat(cat) {
+  return allActivities.filter(act => getActivityDayKey(act) === cat);
+}
+
+// ===== build index =====
 function buildGlobalIdMap() {
   globalIdMap = {};
   conflictIdSet = new Set();
@@ -971,11 +974,10 @@ function buildGlobalIdMap() {
   allActivities.forEach(act => {
     const gid = parseInt((act.global_id || '0').replace(/\D/g,'')) || 0;
     if (gid > 0) {
-      const dk = getActivityDayKey(act);
-      globalIdMap[gid] = { activity: act, dayKey: dk };
+      globalIdMap[gid] = { activity: act, dayKey: getActivityDayKey(act) };
     }
   });
-  // 冲突检测：同日时间重叠
+  // 冲突检测
   const byDay = {};
   allActivities.forEach(act => {
     const dk = getActivityDayKey(act);
@@ -1005,17 +1007,7 @@ function buildGlobalIdMap() {
   });
 }
 
-// ===== 筛选逻辑 =====
-function getActivitiesByDay(filter) {
-  if (filter === 'all') return allActivities;
-  return allActivities.filter(act => getActivityDayKey(act) === filter);
-}
-
-function getActivityCountByDay(dayKey) {
-  return allActivities.filter(act => getActivityDayKey(act) === dayKey).length;
-}
-
-// ===== 手机/PC 视图切换 =====
+// ===== 视图切换 =====
 function setupViewToggle() {
   const toggleBtn = document.getElementById('view-toggle');
   if (window.innerWidth < 768) {
@@ -1051,7 +1043,6 @@ function setupFilterTabs() {
       applyFilter(currentFilter);
     });
   });
-  // 更新 Tab 角标
   document.getElementById('fc-all').textContent = allActivities.length;
   document.getElementById('fc-fri').textContent = getActivityCountByDay('friday');
   document.getElementById('fc-sat').textContent = getActivityCountByDay('saturday');
@@ -1074,6 +1065,7 @@ function applyFilter(filter) {
   renderGanttChart(filter);
   renderC4Weather(filter);
   renderC4Conflict(null);
+  renderC4WeekdayBoard();
   renderDetailPlaceholder();
   updateGanttDayHeader(filter);
 }
@@ -1091,11 +1083,19 @@ function renderStatsRibbon(filter) {
   const all = getActivitiesByDay(filter);
   const totalEvents = all.length;
   const totalBudget = all.reduce((s,a) => s + (parseInt((a.cost||'0').replace(/[^\d]/g,''))||0), 0);
-  const coldCount = all.filter(a => (a.activity_type||[]).some(t => t.includes('联谊') || t.includes('相亲')) ? 0 : 0);  // placeholder
-  const warmCount = all.length - coldCount;
   const total = all.length || 1;
-  const coldPct = Math.round(coldCount/total*100);
-  const warmPct = Math.round(warmCount/total*100);
+
+  // 统计时间分类
+  const nwCount = filter === 'all' ? getActivitiesForDateCat('next_week').length : 0;
+  const wdCount = filter === 'all' ? getActivitiesForDateCat('weekday').length : 0;
+
+  let extraStats = '';
+  if (filter === 'all' && (nwCount > 0 || wdCount > 0)) {
+    let parts = [];
+    if (wdCount > 0) parts.push('<span style="color:#22c55e;font-size:9px;">🟢 工作日 ' + wdCount + '场</span>');
+    if (nwCount > 0) parts.push('<span style="color:#60a5fa;font-size:9px;">🔵 下周 ' + nwCount + '场</span>');
+    extraStats = parts.join('');
+  }
 
   document.getElementById('stats-ribbon').innerHTML = `
     <div class="sr-item"><span class="sr-val">${totalEvents}</span><span class="sr-lbl">场</span></div>
@@ -1103,14 +1103,7 @@ function renderStatsRibbon(filter) {
     <div class="sr-item"><span class="sr-val">¥${totalBudget.toLocaleString()}</span><span class="sr-lbl">预算</span></div>
     <div class="sr-divider"></div>
     <div class="sr-item"><span class="sr-val">${all.reduce((s,a)=>s+(parseInt((a.capacity||'0').replace(/[^\d]/g,''))||0),0)}</span><span class="sr-lbl">人流量</span></div>
-    <div class="sr-divider"></div>
-    <div class="sr-bar-wrap">
-      <span class="sr-bar-lbl">📊 ${totalEvents}场</span>
-      <div class="sr-bar-track">
-        <div class="sr-bar-fill cold" style="width:${Math.max(5,coldPct)}%"></div>
-        <div class="sr-bar-fill warm" style="width:${Math.max(5,warmPct)}%"></div>
-      </div>
-    </div>
+    ${extraStats ? '<div class="sr-divider"></div>' + extraStats : ''}
   `;
 }
 
@@ -1140,7 +1133,6 @@ function renderGallery(filter) {
         this.classList.add('selected');
       }
       highlightByGlobalId(gid);
-      // 冲突面板
       if (conflictIdSet.has(aid)) {
         renderC4Conflict(conflictMap[aid]);
       } else {
@@ -1161,14 +1153,23 @@ function renderPosterCard(a) {
   const timeStr = times.start ? times.start.slice(11,16) + ' ~ ' + times.end.slice(11,16) : '时间待定';
   const dk = getActivityDayKey(a);
   const tone = (a.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
-  const scCls = 'mid';  // 简化：新数据暂无 value_score
-
-  // 提取费用数字
   const feeNum = parseInt((a.cost||'0').replace(/[^\d]/g,'')) || 0;
   const capNum = parseInt((a.capacity||'0').replace(/[^\d]/g,'')) || 0;
-
-  // 尝试用 cover_image 或 source_type 决定背景
   const hasImage = a.source_type === 'img' && a.source_url && a.source_url.startsWith('http');
+
+  // 颜色区分
+  let cardClass = 'poster-card';
+  let toneClass = 'tone-' + tone;
+  let toneLabel = TONE_LABELS[tone] || tone;
+  if (dk === 'next_week') {
+    cardClass += ' next-week';
+    toneClass = 'tone-next';
+    toneLabel = '🔵 下周';
+  } else if (dk === 'weekday') {
+    cardClass += ' weekday';
+    toneClass = 'tone-wkd';
+    toneLabel = '🟢 工作日';
+  }
 
   let bgStyle = '';
   if (hasImage) {
@@ -1182,31 +1183,36 @@ function renderPosterCard(a) {
     bgStyle = `background:${gradients[tone]||gradients.neutral};`;
   }
 
+  const title = (a.activity_title||a.title||'未命名活动').substring(0,30);
+  const loc = (a.activity_location||'—').substring(0,20);
+  const dateCatLabel = dk === 'weekday' ? '📅工作日' : (dk === 'next_week' ? '📅下周' : '');
+  const organizerStr = a.organizer ? ' | ' + a.organizer : '';
+
   return `
-  <div class="poster-card" data-activity-id="${gid}" data-global-id="${gidNum}">
+  <div class="${cardClass}" data-activity-id="${gid}" data-global-id="${gidNum}">
     ${hasImage ? `<div class="poster-bg" style="${bgStyle}"></div>` : ''}
     <div class="poster-overlay"></div>
     <div class="global-id-badge"><span class="gid-num">${gidNum||'?'}</span></div>
-    <span class="poster-tone tone-${tone}">${TONE_LABELS[tone]||tone}</span>
+    <span class="poster-tone ${toneClass}">${toneLabel}</span>
     <div class="poster-content">
-      <div class="poster-name">${(a.activity_title||a.title||'未命名活动').substring(0,30)}</div>
+      <div class="poster-name">${dateCatLabel ? '<span style="font-size:9px;opacity:0.7;">'+dateCatLabel+'</span> ' : ''}${title}</div>
       <div class="poster-meta">
         <div class="pm-item"><span class="pm-lbl">时间</span><span class="pm-val">${timeStr}</span></div>
         <div class="pm-item"><span class="pm-lbl">费用</span><span class="pm-val">¥${feeNum||'免费'}</span></div>
         <div class="pm-item"><span class="pm-lbl">人数</span><span class="pm-val">${capNum||'—'}人</span></div>
-        <div class="pm-item" style="grid-column:1/-1"><span class="pm-lbl">📍</span><span class="pm-val">${(a.activity_location||'—').substring(0,20)}</span></div>
+        <div class="pm-item" style="grid-column:1/-1"><span class="pm-lbl">📍</span><span class="pm-val">${loc}${organizerStr}</span></div>
       </div>
       ${(a.activity_type||[]).length ? `<div class="poster-details"><div class="poster-detail-row"><span class="poster-detail-icon">🎪</span><span class="poster-detail-text">${(a.activity_type||[]).join('/')}</span></div></div>` : ''}
       ${(a.summary||'') ? `<div class="poster-essence">${(a.summary||'').substring(0,60)}</div>` : ''}
       <div class="poster-footer">
         ${a.source_url ? `<a class="poster-link" href="${a.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 原始链接</a>` : `<span class="poster-link" style="color:var(--muted);cursor:default;opacity:0.4;">📎 无链接</span>`}
-        <span class="poster-score ${scCls}">⭐ 待评分</span>
+        <span class="poster-score mid">⭐ 待评分</span>
       </div>
     </div>
   </div>`;
 }
 
-// ===== A区 Detail 详情面板 =====
+// ===== A区 Detail 详情面板（核心重构：联系方式高亮 + 二维码）=====
 function renderDetailPlaceholder() {
   const scroll = document.getElementById('a-detail-scroll');
   scroll.innerHTML = `
@@ -1226,15 +1232,69 @@ function renderDetailPanel(act) {
   const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
   const feeNum = parseInt((act.cost||'0').replace(/[^\d]/g,'')) || 0;
   const capNum = parseInt((act.capacity||'0').replace(/[^\d]/g,'')) || 0;
+  const dk = getActivityDayKey(act);
+
+  // 日期类别标签
+  let dateCatTag = '';
+  if (dk === 'next_week') dateCatTag = '<span class="ad-tone-tag next-week" style="margin-left:6px;">🔵 下周活动</span>';
+  else if (dk === 'weekday') dateCatTag = '<span class="ad-tone-tag weekday" style="margin-left:6px;">🟢 工作日</span>';
+
+  // ---- 联系方式高亮区（核心）----
+  let contactHtml = '';
+  const hasContact = act.contact_wechat || act.contact_phone || act.registration || act.has_qr_code || act.qr_url;
+  if (hasContact) {
+    contactHtml = '<div class="ad-contact-highlight"><div class="ad-ch-label">📞 如何报名 / 联系方式</div>';
+    if (act.registration) {
+      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">📝</span><div><span class="ad-ch-val small">${act.registration}</span></div></div>`;
+    }
+    if (act.contact_wechat) {
+      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">💬</span><div><span class="ad-ch-sub">微信号</span><br><span class="ad-ch-val">${act.contact_wechat}</span></div></div>`;
+    }
+    if (act.contact_phone) {
+      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">📱</span><div><span class="ad-ch-sub">电话</span><br><span class="ad-ch-val">${act.contact_phone}</span></div></div>`;
+    }
+    // 二维码
+    if (act.qr_url) {
+      contactHtml += `<div class="ad-qr-container"><img src="${act.qr_url}" alt="报名二维码" onerror="this.style.display='none'" loading="lazy"></div>`;
+    } else if (act.has_qr_code) {
+      contactHtml += '<div class="ad-ch-row"><span class="ad-ch-icon">📱</span><div><span class="ad-ch-val small">含报名二维码</span><br><span class="ad-ch-sub">请查看原始链接中的二维码图片</span></div></div>';
+    }
+    contactHtml += '</div>';
+  }
+
+  // 如果有 source_url 且没有显式联系方式，提示查看原链接
+  if (!hasContact && act.source_url) {
+    contactHtml = `
+    <div class="ad-contact-highlight" style="border-color:var(--accent);">
+      <div class="ad-ch-label" style="color:var(--accent);">📞 如何报名</div>
+      <div class="ad-ch-row">
+        <span class="ad-ch-icon">🔗</span>
+        <div><span class="ad-ch-val small">查看原始链接获取报名方式</span></div>
+      </div>
+      <a class="ad-link" href="${act.source_url}" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block;">📎 打开原始链接 →</a>
+    </div>`;
+  }
+
+  // 去重信息
+  let dedupHtml = '';
+  if (act._dedup_count && act._dedup_count > 1 && act._dedup_source_titles) {
+    dedupHtml = `
+    <div class="ad-section">
+      <div class="ad-section-title">🔗 已合并相似活动 (${act._dedup_count}条)</div>
+      <div class="ad-core">${act._dedup_source_titles.map((t,i) => `${i+1}. ${t}`).join('<br>')}</div>
+    </div>`;
+  }
 
   scroll.innerHTML = `
     <div class="ad-header">
       <div class="ad-gid-badge"><span class="ad-gid-num">${gidNum||'?'}</span></div>
       <div class="ad-title-group">
         <div class="ad-title">${(act.activity_title||act.title||'未命名活动').substring(0,40)}</div>
-        <span class="ad-tone-tag ${tone}">${TONE_LABELS[tone]||tone}</span>
+        <span class="ad-tone-tag ${tone}">${TONE_LABELS[tone]||tone}</span>${dateCatTag}
       </div>
     </div>
+
+    ${contactHtml}
 
     <div class="ad-section">
       <div class="ad-section-title">📋 基础信息</div>
@@ -1264,11 +1324,19 @@ function renderDetailPanel(act) {
       <div class="ad-core">${(act.activity_type||[]).join(' / ')}</div>
     </div>` : ''}
 
+    ${(act.organizer||'') ? `
+    <div class="ad-section">
+      <div class="ad-section-title">🏢 主办方</div>
+      <div class="ad-core">${act.organizer}</div>
+    </div>` : ''}
+
     ${(act.target_group||[]).length ? `
     <div class="ad-section">
       <div class="ad-section-title">🎯 目标人群</div>
       <div class="ad-core">${(act.target_group||[]).join(' / ')}</div>
     </div>` : ''}
+
+    ${dedupHtml}
 
     ${(act.summary||'') ? `
     <div class="ad-section">
@@ -1304,19 +1372,16 @@ L.marker([ORIGIN.lat, ORIGIN.lng], { icon: originIcon })
 
 let markersLayer = L.layerGroup().addTo(map);
 let routesLayer = L.layerGroup().addTo(map);
-let heatLayer = L.layerGroup().addTo(map);
 
 function clearMap() {
   markersLayer.clearLayers();
   routesLayer.clearLayers();
-  heatLayer.clearLayers();
   mapMarkerMap = {};
 }
 
 function fitMap(activities) {
   if (!activities.length) return;
   const bounds = [[ORIGIN.lat, ORIGIN.lng]];
-  // 新数据无 lat/lng，用原点为中心
   map.fitBounds(bounds, { padding: [30,30], maxZoom: 13 });
 }
 
@@ -1330,18 +1395,8 @@ function buildPopup(act) {
     🕐 ${t}<br>
     💰 ¥${(act.cost||'—')} | 👥 ${(act.capacity||'—')}人<br>
     📍 ${act.activity_location||'—'}<br>
+    ${act.contact_wechat ? `💬 微信: ${act.contact_wechat}<br>` : ''}
   </div>`;
-}
-
-function createPreciseMarkerIcon(gidNum) {
-  return L.divIcon({
-    className: 'map-marker-icon',
-    html: `<div style="position:relative;width:28px;height:28px;">
-      <div style="position:absolute;top:4px;left:4px;background:#ef4444;width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>
-      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);color:#fff;font-weight:800;font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${gidNum}</span>
-    </div>`,
-    iconSize: [28,28], iconAnchor: [14,28], popupAnchor: [0,-28]
-  });
 }
 
 function createFuzzyMarkerIcon(gidNum) {
@@ -1357,12 +1412,9 @@ function renderMap(filter) {
   const activities = getActivitiesByDay(filter || 'all');
   if (!activities.length) { fitMap([]); return; }
 
-  // 新数据格式无精确 lat/lng，全部用模糊标记在原点附近随机偏移
-  const R = 0.05; // ~5km 半径
-  const routePts = [];
+  const R = 0.05;
   activities.forEach(act => {
     const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
-    // 在原点附近生成确定性随机位置（基于 global_id）
     const angle = (gidNum * 137.5) % 360 * Math.PI / 180;
     const radius = ((gidNum * 7) % 100) / 100 * R;
     const lat = ORIGIN.lat + Math.cos(angle) * radius;
@@ -1371,27 +1423,18 @@ function renderMap(filter) {
     const icon = createFuzzyMarkerIcon(gidNum);
     const mk = L.marker([lat, lng], { icon }).bindPopup(buildPopup(act));
     mk._gid = gidNum;
-    mk.on('click', () => {
-      highlightByGlobalId(gidNum);
-    });
+    mk.on('click', () => { highlightByGlobalId(gidNum); });
     markersLayer.addLayer(mk);
     mapMarkerMap[gidNum] = mk;
-    routePts.push([lat, lng]);
   });
-
-  if (routePts.length >= 2) {
-    routesLayer.addLayer(L.polyline(routePts, {
-      color: '#60a5fa', weight: 2, opacity: 0.5, dashArray: '8 5'
-    }));
-  }
   fitMap(activities);
 }
 
 // ================================================================
-//   C区: C4 面板 + 甘特图
+//   C区: C4 面板 + C4 工作日看板 + 甘特图 C2/C3/C5
 // ================================================================
 
-/* ── C4 冲突对比面板 ── */
+/* ── C4 冲突对比 ── */
 function renderC4Conflict(cg) {
   const el = document.getElementById('c4-conflict');
   if (!cg) {
@@ -1402,11 +1445,10 @@ function renderC4Conflict(cg) {
       </div>`;
     return;
   }
-  // cg.members 渲染逻辑（保留原样）
   el.innerHTML = '<div class="c4c-placeholder"><div class="c4c-ph-icon">⚡</div><div class="c4c-ph-text">冲突数据格式待适配</div></div>';
 }
 
-/* ── C4 气象限行面板 ── */
+/* ── C4 气象限行 ── */
 function renderC4Weather(filter) {
   const w = WEATHER_DATA[filter] || WEATHER_DATA.all;
   const el = document.getElementById('c4-weather');
@@ -1430,15 +1472,59 @@ function renderC4Weather(filter) {
   `;
 }
 
-/* ── C1/C2/C3 甘特图 ── */
+/* ── C4 工作日看板 ── */
+function renderC4WeekdayBoard() {
+  const board = document.getElementById('c4-weekday-board');
+  let wdActs = getActivitiesForDateCat('weekday');
+  // 也加入 next_week
+  const nwActs = getActivitiesForDateCat('next_week');
+  const allExtra = [...wdActs, ...nwActs];
+
+  // 移除旧项目
+  board.querySelectorAll('.c4wb-item').forEach(el => el.remove());
+  const emptyEl = document.getElementById('c4wb-empty');
+  if (emptyEl) emptyEl.style.display = allExtra.length ? 'none' : 'block';
+
+  if (!allExtra.length) return;
+
+  allExtra.forEach(act => {
+    const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
+    const times = parseActivityTimes(act);
+    const timeStr = times.start ? times.start.slice(11,16) : '—';
+    const name = (act.activity_title||act.title||'').substring(0,16);
+    const dk = getActivityDayKey(act);
+    const dotColor = dk === 'next_week' ? '#60a5fa' : '#22c55e';
+
+    const item = document.createElement('div');
+    item.className = 'c4wb-item';
+    item.dataset.globalId = gidNum;
+    item.innerHTML = `
+      <div class="c4wb-time" style="color:${dotColor}">${timeStr} ${dk==='next_week'?'🔵':'🟢'}</div>
+      <div class="c4wb-name">${name}</div>
+    `;
+    item.addEventListener('click', function() {
+      const gid = parseInt(this.dataset.globalId);
+      highlightByGlobalId(gid);
+    });
+    item.addEventListener('mouseenter', function() {
+      softHighlightByGlobalId(parseInt(this.dataset.globalId));
+    });
+    item.addEventListener('mouseleave', clearHighlights);
+    board.appendChild(item);
+  });
+}
+
+/* ── 甘特图 C1/C2/C3/C5（蛇形排列）── */
 function renderGanttChart(filter) {
   const activities = getActivitiesByDay(filter || 'all');
   const c2Track = document.getElementById('gantt-c2');
   const c3Track = document.getElementById('gantt-c3');
+  const c5Track = document.getElementById('gantt-c5');
   const axisEl = document.getElementById('gantt-axis');
 
-  c2Track.querySelectorAll('.gantt-block').forEach(el => el.remove());
-  c3Track.querySelectorAll('.gantt-block').forEach(el => el.remove());
+  [c2Track, c3Track, c5Track].forEach(t => {
+    t.querySelectorAll('.gantt-block').forEach(el => el.remove());
+  });
   axisEl.innerHTML = '';
 
   // C1 时间轴刻度
@@ -1472,62 +1558,78 @@ function renderGanttChart(filter) {
     return;
   }
 
+  // 蛇形轨道分配：C2 → C3 → C5 → C3 → C2
+  const trackMap = {};
   activities.forEach((act, idx) => {
-    const track = idx % 2 === 0 ? c2Track : c3Track;
-    const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
-    const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
-    const times = parseActivityTimes(act);
-    let leftPct = 0, widthPct = 8;
-    if (times.start && times.end) {
-      const sMin = timeToMin(times.start);
-      const eMin = timeToMin(times.end);
-      const cs = Math.max(sMin, GANTT_START_HOUR*60);
-      const ce = Math.min(eMin, GANTT_END_HOUR*60);
-      leftPct = minToPct(cs);
-      widthPct = Math.max(2, minToPct(ce) - leftPct);
-    }
+    const patternIdx = idx % GANTT_TRACK_ORDER.length;
+    const trackId = GANTT_TRACK_ORDER[patternIdx];
+    if (!trackMap[trackId]) trackMap[trackId] = [];
+    trackMap[trackId].push({ act, idx });
+  });
 
-    const block = document.createElement('div');
-    block.className = `gantt-block ${tone}`;
-    block.dataset.globalId = gidNum;
-    block.dataset.activityId = act.global_id || '';
-    block.style.left = leftPct + '%';
-    block.style.width = widthPct + '%';
+  // 渲染所有轨道
+  const trackElMap = { 'gantt-c2': c2Track, 'gantt-c3': c3Track, 'gantt-c5': c5Track };
 
-    const timeStr = times.start ? times.start.slice(11,16)+'-'+times.end.slice(11,16) : '??:??';
-    const miscStr = `${(act.organizer||'—')} | ¥${(act.cost||'—')} | ${(act.capacity||'—')}人`;
-    block.title = `#${gidNum} ${(act.activity_title||act.title||'').substring(0,20)}\n${timeStr}\n${miscStr}`;
+  Object.keys(trackMap).forEach(trackId => {
+    const trackEl = trackElMap[trackId];
+    if (!trackEl) return;
 
-    block.innerHTML = `
-      <span class="gb-gid"><span>${gidNum||'?'}</span></span>
-      <div class="gb-content">
-        <span class="gb-time">${timeStr}</span>
-        <span class="gb-name">${(act.activity_title||act.title||'').substring(0,18)}</span>
-        <span class="gb-misc">${miscStr.substring(0,30)}</span>
-      </div>
-    `;
-
-    block.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const gidInt = parseInt(this.dataset.globalId);
-      highlightByGlobalId(gidInt);
-      if (currentFilter !== 'all') {
-        const info = globalIdMap[gidInt];
-        if (info) {
-          renderDetailPanel(info.activity);
-          selectedActivityId = act.global_id;
-          document.querySelectorAll('.poster-card.selected').forEach(c=>c.classList.remove('selected'));
-          const card = document.querySelector(`.poster-card[data-global-id="${gidInt}"]`);
-          if (card) card.classList.add('selected');
-        }
+    trackMap[trackId].forEach(({ act, idx }) => {
+      const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
+      const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
+      const times = parseActivityTimes(act);
+      let leftPct = 0, widthPct = 8;
+      if (times.start && times.end) {
+        const sMin = timeToMin(times.start);
+        const eMin = timeToMin(times.end);
+        const cs = Math.max(sMin, GANTT_START_HOUR*60);
+        const ce = Math.min(eMin, GANTT_END_HOUR*60);
+        leftPct = minToPct(cs);
+        widthPct = Math.max(2, minToPct(ce) - leftPct);
       }
-    });
-    block.addEventListener('mouseenter', function() {
-      softHighlightByGlobalId(parseInt(this.dataset.globalId));
-    });
-    block.addEventListener('mouseleave', clearHighlights);
 
-    track.appendChild(block);
+      const block = document.createElement('div');
+      block.className = `gantt-block ${tone}`;
+      block.dataset.globalId = gidNum;
+      block.dataset.activityId = act.global_id || '';
+      block.style.left = leftPct + '%';
+      block.style.width = widthPct + '%';
+
+      const timeStr = times.start ? times.start.slice(11,16)+'-'+times.end.slice(11,16) : '??:??';
+      const miscStr = `${(act.organizer||'—')} | ¥${(act.cost||'—')} | ${(act.capacity||'—')}人`;
+      block.title = `#${gidNum} ${(act.activity_title||act.title||'').substring(0,20)}\n${timeStr}\n${miscStr}`;
+
+      block.innerHTML = `
+        <span class="gb-gid"><span>${gidNum||'?'}</span></span>
+        <div class="gb-content">
+          <span class="gb-time">${timeStr}</span>
+          <span class="gb-name">${(act.activity_title||act.title||'').substring(0,18)}</span>
+          <span class="gb-misc">${miscStr.substring(0,30)}</span>
+        </div>
+      `;
+
+      block.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const gidInt = parseInt(this.dataset.globalId);
+        highlightByGlobalId(gidInt);
+        if (currentFilter !== 'all') {
+          const info = globalIdMap[gidInt];
+          if (info) {
+            renderDetailPanel(info.activity);
+            selectedActivityId = act.global_id;
+            document.querySelectorAll('.poster-card.selected').forEach(c=>c.classList.remove('selected'));
+            const card = document.querySelector(`.poster-card[data-global-id="${gidInt}"]`);
+            if (card) card.classList.add('selected');
+          }
+        }
+      });
+      block.addEventListener('mouseenter', function() {
+        softHighlightByGlobalId(parseInt(this.dataset.globalId));
+      });
+      block.addEventListener('mouseleave', clearHighlights);
+
+      trackEl.appendChild(block);
+    });
   });
 }
 
@@ -1540,14 +1642,12 @@ function highlightByGlobalId(gid) {
   if (!gid || !globalIdMap[gid]) return;
   const info = globalIdMap[gid];
 
-  // A区：滚动到海报卡片 + 高亮
   const posterCard = document.querySelector(`.poster-card[data-global-id="${gid}"]`);
   if (posterCard) {
     posterCard.classList.add('highlight-active');
     posterCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // B区：flyTo + 弹出 popup
   const mk = mapMarkerMap[gid];
   if (mk && info.activity) {
     map.flyTo(mk.getLatLng(), 14, { duration: 0.8 });
@@ -1557,20 +1657,20 @@ function highlightByGlobalId(gid) {
     mk._highlighted = true;
   }
 
-  // C区：滚动到甘特块 + 高亮
-  const ganttBlock = document.querySelector(`.gantt-block[data-global-id="${gid}"]`);
-  if (ganttBlock) {
-    ganttBlock.classList.add('highlight-active');
-    ganttBlock.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-  }
+  // 甘特块 + 工作日看板项目
+  document.querySelectorAll(`.gantt-block[data-global-id="${gid}"], .c4wb-item[data-global-id="${gid}"]`)
+    .forEach(el => {
+      el.classList.add('highlight-active');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    });
 }
 
 function softHighlightByGlobalId(gid) {
   if (!gid || !globalIdMap[gid]) return;
   const posterCard = document.querySelector(`.poster-card[data-global-id="${gid}"]`);
   if (posterCard) posterCard.classList.add('highlight-active');
-  const ganttBlock = document.querySelector(`.gantt-block[data-global-id="${gid}"]`);
-  if (ganttBlock) ganttBlock.classList.add('highlight-active');
+  document.querySelectorAll(`.gantt-block[data-global-id="${gid}"], .c4wb-item[data-global-id="${gid}"]`)
+    .forEach(el => el.classList.add('highlight-active'));
   const mk = mapMarkerMap[gid];
   if (mk) {
     const iconEl = mk.getElement();
@@ -1591,7 +1691,7 @@ function clearHighlights() {
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('.poster-card') && !e.target.closest('.gantt-block') && !e.target.closest('.leaflet-marker-icon')) {
+  if (!e.target.closest('.poster-card') && !e.target.closest('.gantt-block') && !e.target.closest('.leaflet-marker-icon') && !e.target.closest('.c4wb-item')) {
     setTimeout(clearHighlights, 100);
   }
 });
@@ -1599,9 +1699,7 @@ document.addEventListener('click', function(e) {
 // ===== 初始化 =====
 function init() {
   setupViewToggle();
-  // 地图先初始化，数据加载后刷新尺寸
   setTimeout(() => map.invalidateSize(), 200);
-  // 启动异步数据加载
   loadRealData();
 }
 

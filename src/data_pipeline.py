@@ -83,7 +83,20 @@ PATTERNS = {
         re.IGNORECASE,
     ),
     'wechat_id': re.compile(r'(微信[：:]\s*[a-zA-Z0-9_-]{5,20})'),
+    'wechat_id_loose': re.compile(
+        r'(?:微信|WeChat|wx|vx)[：:\s]*([a-zA-Z][a-zA-Z0-9_-]{4,19})',
+        re.IGNORECASE,
+    ),
+    'phone': re.compile(
+        r'(?:电话|手机|Tel|Phone|联系方式)[：:\s]*(\d[\d\s-]{7,15})',
+        re.IGNORECASE,
+    ),
+    'phone_loose': re.compile(r'(\b1[3-9]\d{9}\b)'),  # 中国手机号
     'qr_code': re.compile(r'(二维码|扫码|长按)'),
+    'qr_url': re.compile(
+        r'(https?://[^\s]{5,200}qrcode[^\s]*|https?://[^\s]{5,200}qr[^\s]*)',
+        re.IGNORECASE,
+    ),
 
     # 公众号来源
     'source_mp': re.compile(
@@ -165,6 +178,9 @@ class DataPipeline:
             'cost': self._extract_cost(text),
             'is_free': self._is_free(text),
             'registration': self._extract_registration(text),
+            'contact_wechat': self._extract_contact_wechat(text),
+            'contact_phone': self._extract_contact_phone(text),
+            'qr_url': self._extract_qr_url(text),
             'capacity': self._extract_capacity(text),
             'target_group': self._extract_target_group(text),
             'organizer': self._extract_organizer(text),
@@ -306,6 +322,37 @@ class DataPipeline:
             parts.append('(含二维码)')
 
         return '; '.join(parts) if parts else ''
+
+    def _extract_contact_wechat(self, text: str) -> str:
+        """专门提取微信号"""
+        # 精确匹配
+        m = PATTERNS['wechat_id'].search(text)
+        if m:
+            return m.group(1).replace('微信:', '').replace('微信：', '').strip()
+        # 宽松匹配
+        m = PATTERNS['wechat_id_loose'].search(text)
+        if m:
+            return m.group(1).strip()
+        return ''
+
+    def _extract_contact_phone(self, text: str) -> str:
+        """专门提取电话号码"""
+        # 显式标注
+        m = PATTERNS['phone'].search(text)
+        if m:
+            return m.group(1).strip().replace(' ', '')
+        # 手机号模式
+        m = PATTERNS['phone_loose'].search(text)
+        if m:
+            return m.group(1)
+        return ''
+
+    def _extract_qr_url(self, text: str) -> str:
+        """提取二维码图片链接"""
+        m = PATTERNS['qr_url'].search(text)
+        if m:
+            return m.group(1)
+        return ''
 
     def _extract_capacity(self, text: str) -> str:
         """提取人数规模"""
