@@ -1,0 +1,17 @@
+# IMA 同步中间产物（含时间戳归档），不推送
+output/
+
+# 防止 2>nul 误生成的文件被 git 索引
+nul
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 工作记忆
+.workbuddy/
+
+# 系统文件
+.DS_Store
+Thumbs.db

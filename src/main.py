@@ -6,7 +6,7 @@
    Step 0: 环境自检（Playwright / EasyOCR / IMA 凭证）
    Step 1: 调用 ima_sync 从腾讯 IMA 知识库实时拉取并渲染/OCR
    Step 2: 调用 data_pipeline 结构化解析
-   Step 3: 生成最终数据集 → output/week_schedule.json
+   Step 3: 生成最终数据集 → week_schedule.json (项目根目录)
    Step 4: (可选) 推送到 GitHub
 ============================================================================
 """
@@ -30,7 +30,8 @@ from data_pipeline import DataPipeline
 logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = PROJECT_ROOT / 'output'
-FINAL_OUTPUT = OUTPUT_DIR / 'week_schedule.json'
+FINAL_OUTPUT = PROJECT_ROOT / 'week_schedule.json'
+ARCHIVE_DIR = OUTPUT_DIR  # 历史副本保留在 output/ 方便 gitignore
 
 
 # ===========================================================================
@@ -164,9 +165,10 @@ def main(
         json.dump(output, f, ensure_ascii=False, indent=2)
     logger.info(f"  最终数据已保存: {FINAL_OUTPUT}")
 
-    # 同时保存一个带时间戳的副本
+    # 同时保存一个带时间戳的副本（存入 output/，不推送到 GitHub）
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    archive_path = OUTPUT_DIR / f'week_schedule_{timestamp}.json'
+    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    archive_path = ARCHIVE_DIR / f'week_schedule_{timestamp}.json'
     with open(archive_path, 'w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
 
@@ -194,9 +196,9 @@ def _push_to_github(output: dict):
             logger.warning("当前不在 git 仓库中，跳过 GitHub 推送")
             return
 
-        # 添加 output 目录下的文件
+        # 添加根目录下的 week_schedule.json
         subprocess.run(
-            ['git', 'add', 'output/'],
+            ['git', 'add', 'week_schedule.json'],
             capture_output=True, cwd=str(PROJECT_ROOT),
         )
 
