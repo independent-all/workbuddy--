@@ -1,6 +1,6 @@
 """
 ============================================================================
- data_pipeline.py — 活动信息结构化解析管道 (v2.4 CoT精简 + 多层防御版)
+ data_pipeline.py — 活动信息结构化解析管道 (v2.5 硬性防火墙版 — cost纯数字拦截 + location模糊词封杀 + time截断)
 ============================================================================
  职责:
    1. 优先调用 LLM (OpenAI 兼容 API) 将 raw_text 解析为结构化 JSON
@@ -716,13 +716,23 @@ class DataPipeline:
             result['activity_time'] = DEFAULT_SAFE['activity_time']
             logger.warning(f"  ⚠️ activity_time 缺少有效时间区间(-/~两侧有数字)，已强制覆写为占位符")
 
+        # —— activity_time 长度截断：>25字符强制截断，防前端卡片撑爆 ——
+        time_val = str(result.get('activity_time', ''))
+        if len(time_val) > 25:
+            result['activity_time'] = time_val[:25] + '...'
+            logger.warning(f"  ⚠️ activity_time 过长({len(time_val)}字)，已截断至25字 + '...'")
+
         # —— activity_location 校验：剔除非地理信息 ——
         loc_val = result.get('activity_location', '')
         if loc_val:
             loc_val = str(loc_val).strip()
+            # 🔥 第0关：模糊关键词硬拦截（直接覆写，不尝试提取城区）
+            fuzzy_keywords = ['通知', '待定', '群', '暂定', '具体']
+            if any(kw in loc_val for kw in fuzzy_keywords):
+                result['activity_location'] = '北京 (具体地点待定)'
+                logger.warning(f"  ⚠️ activity_location 含模糊词 '{loc_val[:30]}'，已覆写为'北京 (具体地点待定)'")
             # 检查是否全是指令性废话
-            garbage_keywords = ['报名后', '进群通知', '私信', '联系', '待定', '具体地址', '活动前', '某个']
-            if any(kw in loc_val for kw in garbage_keywords):
+            elif any(kw in loc_val for kw in ['报名后', '进群通知', '私信', '联系', '具体地址', '活动前', '某个']):
                 # 尝试从原文中提取区域
                 district_match = re.search(r'(朝阳|海淀|东城|西城|丰台|石景山|通州|大兴|昌平|顺义|房山)区', loc_val)
                 if district_match:
@@ -769,6 +779,12 @@ class DataPipeline:
             elif re.search(r'[a-zA-Z0-9\s/.:@#$%^&*]{6,}', cost) and not re.search(r'[\u4e00-\u9fff]', cost):
                 result['cost'] = '详见详情'
                 logger.warning(f"  ⚠️ cost 含冗长非中文 '{cost}'，已覆写为'详见详情'")
+            # 第6关：纯数字值防火墙（长度>4或数值>1000 → 绝对拦截手机号/异常大数）
+            elif re.sub(r'\D', '', cost):
+                digits = re.sub(r'\D', '', cost)
+                if len(digits) > 4 or int(digits) > 1000:
+                    result['cost'] = '详见详情'
+                    logger.warning(f"  ⚠️ cost 纯数字异常 (digits={digits}, len={len(digits)}, val={int(digits)})，已覆写为'详见详情'")
 
         # —— activity_title 安全检查 ——
         title = result.get('activity_title', '')
