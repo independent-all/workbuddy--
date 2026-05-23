@@ -1,6 +1,6 @@
 """
 ============================================================================
- data_pipeline.py — 活动信息结构化解析管道 (v2.6 AI评分版 — 用户画像智能契合度评分 + 六关防火墙)
+ data_pipeline.py — 活动信息结构化解析管道 (v2.7 高可用版 — 指数退避重试 + 降级JSON兜底)
 ============================================================================
  职责:
    1. 优先调用 LLM (OpenAI 兼容 API) 将 raw_text 解析为结构化 JSON
@@ -249,6 +249,28 @@ DEFAULT_SAFE = {
     'has_qr_code': False,
 }
 
+# —— LLM 通信层降级安全值（3次重试全败时返回，确保批处理不中断）——
+LLM_DEGRADED = {
+    'activity_title': '活动信息（解析失败）',
+    'activity_time': '12:00-12:01',
+    'activity_location': '北京 (具体地点待定)',
+    'cost': '详见详情',
+    'capacity': '',
+    'target_group': [],
+    'contact_info': '',
+    'contact_wechat': '',
+    'contact_phone': '',
+    'organizer': '',
+    'activity_type': [],
+    'is_free': False,
+    'qr_url': '',
+    'registration': '',
+    'source_mp': '',
+    'has_qr_code': False,
+    'ai_score': 50,
+    'ai_reason': '评分缺省',
+}
+
 
 # ===========================================================================
 # LLM 调用模块
@@ -294,7 +316,7 @@ class LLMParser:
     def parse(self, raw_text: str, title_hint: str = '') -> Optional[dict]:
         """
         发送 raw_text 给 LLM，返回解析后的字段字典。
-        失败返回 None（由调用方决定是否用正则兜底）。
+        内置指数退避重试（最多3次），全败时返回安全降级 JSON。
 
         Parameters
         ----------
@@ -315,47 +337,71 @@ class LLMParser:
         if title_hint:
             user_content = f"[活动标题提示: {title_hint}]\n\n{text_to_send}"
 
-        try:
-            response = self._client.chat.completions.create(
-                model=self._cfg['model'],
-                messages=[
-                    {'role': 'system', 'content': SYSTEM_PROMPT},
-                    {'role': 'user', 'content': user_content},
-                ],
-                temperature=0.0,
-                max_tokens=800,
-                response_format={'type': 'json_object'},  # 强制 JSON 输出（gpt-4o 系列支持）
-            )
-            raw_json = response.choices[0].message.content or ''
-            result = self._parse_json(raw_json)
-            if result:
-                logger.info(f"  LLM ✅ title='{result.get('activity_title','?')[:30]}'")
+        # —— 第一路径：带 json_object 约束的调用 ——
+        result = self._call_llm_with_retry(user_content, use_json_mode=True)
+        if result is not None:
             return result
-        except Exception as e:
-            err_str = str(e)
-            # 如果是参数不支持（老版本 API 不支持 response_format），降级重试
-            if 'response_format' in err_str or 'json_object' in err_str:
-                return self._parse_without_json_mode(user_content)
-            logger.warning(f"  LLM ⚠️ 调用失败: {e}")
-            return None
 
-    def _parse_without_json_mode(self, user_content: str) -> Optional[dict]:
-        """降级版：不使用 response_format 参数（兼容旧版模型）"""
-        try:
-            response = self._client.chat.completions.create(
-                model=self._cfg['model'],
-                messages=[
-                    {'role': 'system', 'content': SYSTEM_PROMPT},
-                    {'role': 'user', 'content': user_content},
-                ],
-                temperature=0.0,
-                max_tokens=800,
-            )
-            raw_json = response.choices[0].message.content or ''
-            return self._parse_json(raw_json)
-        except Exception as e:
-            logger.warning(f"  LLM ⚠️ 降级调用失败: {e}")
-            return None
+        # —— 第二路径：降级为无 json_object 约束的调用 ——
+        result = self._call_llm_with_retry(user_content, use_json_mode=False)
+        if result is not None:
+            return result
+
+        # 🔥 两路径全部重试耗尽 → 返回安全降级 JSON
+        logger.error("  LLM ❌ 全部重试耗尽，返回安全降级 JSON（time=12:00-12:01, cost=详见详情, location=北京 (具体地点待定)）")
+        return dict(LLM_DEGRADED)
+
+    def _call_llm_with_retry(self, user_content: str, use_json_mode: bool) -> Optional[dict]:
+        """
+        带指数退避的 LLM API 调用。
+        - 最多重试 3 次
+        - 退避间隔：2s → 4s
+        - response_format 不支持时立即放弃（不重试）
+        - 返回解析成功的结果字典，或 None（需上层继续处理）
+        """
+        for attempt in range(1, 4):  # 1, 2, 3
+            try:
+                kwargs: dict[str, Any] = {
+                    'model': self._cfg['model'],
+                    'messages': [
+                        {'role': 'system', 'content': SYSTEM_PROMPT},
+                        {'role': 'user', 'content': user_content},
+                    ],
+                    'temperature': 0.0,
+                    'max_tokens': 800,
+                }
+                if use_json_mode:
+                    kwargs['response_format'] = {'type': 'json_object'}
+
+                response = self._client.chat.completions.create(**kwargs)
+                raw_json = response.choices[0].message.content or ''
+                result = self._parse_json(raw_json)
+                if result:
+                    logger.info(f"  LLM ✅ title='{result.get('activity_title','?')[:30]}'")
+                    return result
+
+                # API 成功但 JSON 解析失败 → 可重试
+                if attempt < 3:
+                    wait = 2 ** (attempt - 1)  # attempt=1→1s, attempt=2→2s... 但用户要2s,4s
+                    wait = 2 if attempt == 1 else 4
+                    logger.warning(f"  LLM JSON解析失败，正在进行第 {attempt+1} 次重试（等待{wait}秒）...")
+                    time.sleep(wait)
+
+            except Exception as e:
+                err_str = str(e)
+                # response_format 不支持 → 永久性错误，立即放弃 json_mode
+                if use_json_mode and ('response_format' in err_str or 'json_object' in err_str):
+                    logger.warning(f"  LLM ⚠️ response_format 不支持，降级至普通模式")
+                    return None
+
+                if attempt < 3:
+                    wait = 2 if attempt == 1 else 4
+                    logger.warning(f"  LLM API调用超时，正在进行第 {attempt+1} 次重试（等待{wait}秒）...")
+                    time.sleep(wait)
+                else:
+                    logger.error(f"  LLM ❌ 3次重试全部失败: {e}")
+
+        return None
 
     @staticmethod
     def _parse_json(raw: str) -> Optional[dict]:
