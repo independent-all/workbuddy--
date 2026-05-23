@@ -1,6 +1,6 @@
 """
 ============================================================================
- data_pipeline.py — 活动信息结构化解析管道 (v2.3 CoT思维链 + 后置拦截版)
+ data_pipeline.py — 活动信息结构化解析管道 (v2.4 CoT精简 + 多层防御版)
 ============================================================================
  职责:
    1. 优先调用 LLM (OpenAI 兼容 API) 将 raw_text 解析为结构化 JSON
@@ -125,7 +125,7 @@ JSON 的第一个字段必须是 "_thinking_process"，格式如下：
 
 输出：
 {
-  "_thinking_process": "1.时间: '5月24日下午两点'→格式化为'05月24日 14:00-17:00'。2.地点: '朝阳三里屯'→补全为'北京市朝阳区三里屯'。3.费用: 原文'198'，纯数字，无手机号混入→直接保留。4.联系方式: 微信提取'xyz123'，电话提取'13800138000'。",
+  "_thinking_process": "提取198为费用，剔除电话13800138000，地点精简为北京市朝阳区三里屯",
   "activity_title": "朝阳三里屯相亲活动",
   "activity_time": "05月24日 14:00-17:00",
   "activity_location": "北京市朝阳区三里屯",
@@ -366,6 +366,7 @@ class LLMParser:
         try:
             obj = json.loads(raw)
             if isinstance(obj, dict):
+                obj.pop('_thinking_process', None)  # 防御纵深：在 JSON 解析层即剥离 CoT
                 return obj
         except json.JSONDecodeError:
             pass
@@ -377,6 +378,7 @@ class LLMParser:
             try:
                 obj = json.loads(candidate)
                 if isinstance(obj, dict):
+                    obj.pop('_thinking_process', None)  # 防御纵深
                     return obj
             except json.JSONDecodeError:
                 pass
@@ -390,6 +392,7 @@ class LLMParser:
                     obj = json.loads(fixed)
                     if isinstance(obj, dict):
                         logger.info("  LLM JSON 已自动修复截断（补齐 %d 个 }）", depth)
+                        obj.pop('_thinking_process', None)  # 防御纵深
                         return obj
                 except json.JSONDecodeError:
                     pass
@@ -740,42 +743,32 @@ class DataPipeline:
 
         # —— cost 安全防线：超长/非中文/手机号/日期/微信号 一律拦截 ——
         cost = str(result.get('cost', '')).strip()
-        cost_clean = cost
-        overridden = False
 
         if not cost:
             result['cost'] = '免费'
-            cost_clean = '免费'
         else:
             # 第1关：手机号检测
             if re.match(r'^1[3-9]\d{9}$', cost):
                 result['cost'] = '详见详情'
-                overridden = True
                 logger.warning(f"  ⚠️ cost 含手机号 '{cost}'，已覆写为'详见详情'")
             # 第2关：日期检测（含月/日模式）
             elif re.search(r'\d{1,2}月\d{1,2}日?', cost):
                 result['cost'] = '详见详情'
-                overridden = True
                 logger.warning(f"  ⚠️ cost 含日期 '{cost}'，已覆写为'详见详情'")
             # 第3关：微信号检测（字母开头5-20位）
             elif re.match(r'^[a-zA-Z][a-zA-Z0-9_-]{4,19}$', cost):
                 if not result.get('contact_wechat'):
                     result['contact_wechat'] = cost
                 result['cost'] = '详见详情'
-                overridden = True
                 logger.warning(f"  ⚠️ cost 含微信号 '{cost}'，已迁移到 contact_wechat + 覆写")
-            # 第4关：字符数超限（>10字符）== 几乎不可能是正常费用（手机号11位）
+            # 第4关：字符数超限（>5字符）== 几乎不可能是正常费用
             elif len(cost) > 5:
                 result['cost'] = '详见详情'
-                overridden = True
                 logger.warning(f"  ⚠️ cost 超长({len(cost)}字) '{cost}'，已覆写为'详见详情'")
             # 第5关：冗长非中文描述（连续ASCII>5 + 非标准价格格式）
             elif re.search(r'[a-zA-Z0-9\s/.:@#$%^&*]{6,}', cost) and not re.search(r'[\u4e00-\u9fff]', cost):
                 result['cost'] = '详见详情'
-                overridden = True
                 logger.warning(f"  ⚠️ cost 含冗长非中文 '{cost}'，已覆写为'详见详情'")
-
-            cost_clean = str(result.get('cost', ''))
 
         # —— activity_title 安全检查 ——
         title = result.get('activity_title', '')

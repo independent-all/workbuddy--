@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>周末交友战术指挥舱 v7.2 — 联系方式高亮 + 三色硬隔离 + C5蛇形防重叠</title>
+<title>周末交友战术指挥舱 v7.5 — 全量生产 + 滚动条防御 + C4防挤压</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
 /* ============================================================
-   周末交友战术指挥舱 v7.2
-   A区: Master-Detail + 超大号联系方式高亮 + 二维码独立渲染
+   周末交友战术指挥舱 v7.5
+   A区: Master-Detail + 联系方式视觉统治 + 零重复（无时间/地点/费用）
    B区: 大地图 + 编号图钉
    C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图时间感知蛇形
-   三区 global_id 联动 | 三色卡片硬隔离
+   三区 global_id 联动 | 三色卡片硬隔离 | C4看板 min-width 防挤压
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -199,6 +199,29 @@ body {
 .ad-info-val { font-size: 14px; font-weight: 500; color: #fff; }
 .ad-info-val.large { font-size: 18px; font-weight: 700; }
 
+/* ── 紧凑摘要条（替代重复的基础信息网格）── */
+.ad-compact-strip {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  padding: 8px 12px; margin-bottom: 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.05);
+  font-size: 10px;
+}
+.ad-compact-strip .ad-cs-item {
+  display: flex; align-items: center; gap: 4px;
+  color: rgba(255,255,255,0.45);
+}
+.ad-compact-strip .ad-cs-val {
+  color: rgba(255,255,255,0.65); font-weight: 500;
+}
+/* 联系方式与摘要之间的强分割线 */
+.ad-divider-strong {
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, rgba(245,158,11,0.5) 0%, transparent 70%);
+  margin: 8px 0 14px; border: none;
+}
+
 /* ── 联系方式高亮区（全新升级：超大字号 + 金色辉光）── */
 .ad-contact-highlight {
   padding: 18px 20px; background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(10,14,20,0.95) 100%);
@@ -320,24 +343,24 @@ body {
 
 /* 卡片色彩区分 — 硬隔离 */
 .poster-card.next-week {
-  background: rgba(59,130,246,0.12) !important;
-  border-color: rgba(96,165,250,0.5) !important;
+  background: rgba(59,130,246,0.16) !important;
+  border-color: rgba(96,165,250,0.55) !important;
   border-style: dashed !important;
   border-width: 2px !important;
 }
 .poster-card.weekday {
-  background: rgba(34,197,94,0.12) !important;
-  border-color: rgba(34,197,94,0.5) !important;
+  background: rgba(34,197,94,0.16) !important;
+  border-color: rgba(34,197,94,0.55) !important;
   border-style: dashed !important;
   border-width: 2px !important;
 }
 .poster-card.next-week:hover {
-  border-color: rgba(96,165,250,0.8) !important;
-  background: rgba(59,130,246,0.18) !important;
+  border-color: rgba(96,165,250,0.85) !important;
+  background: rgba(59,130,246,0.24) !important;
 }
 .poster-card.weekday:hover {
-  border-color: rgba(34,197,94,0.75) !important;
-  background: rgba(34,197,94,0.18) !important;
+  border-color: rgba(34,197,94,0.8) !important;
+  background: rgba(34,197,94,0.24) !important;
 }
 /* 周末卡片保持实线 */
 .poster-card:not(.next-week):not(.weekday) {
@@ -522,7 +545,7 @@ body {
 
 /* C4-中 10%: 工作日看板 */
 .c4-weekday-board {
-  width: 10%; min-width: 0;
+  width: 10%; min-width: 100px;
   background: var(--surface);
   border-left: 1px solid var(--border);
   overflow-y: auto; overflow-x: hidden;
@@ -878,7 +901,7 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ================================================================
-// 周末交友战术指挥舱 v7.2 — 联系方式高亮 + 三色硬隔离 + C5蛇形防重叠
+// 周末交友战术指挥舱 v7.5 — 全量生产 + 滚动条防御 + C4防挤压
 // ================================================================
 
 // ===== 全局变量 =====
@@ -1288,11 +1311,7 @@ function renderDetailPanel(act) {
   const scroll = document.getElementById('a-detail-scroll');
   const gid = act.global_id || '?';
   const gidNum = parseInt(gid.replace(/\D/g,'')) || 0;
-  const times = parseActivityTimes(act);
-  const timeStr = times.start ? times.start.slice(11,16) + ' ~ ' + times.end.slice(11,16) : '时间待定';
   const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
-  const feeNum = parseInt((act.cost||'0').replace(/[^\d]/g,'')) || 0;
-  const capNum = parseInt((act.capacity||'0').replace(/[^\d]/g,'')) || 0;
   const dk = getActivityDayKey(act);
 
   // 日期类别标签
@@ -1303,7 +1322,7 @@ function renderDetailPanel(act) {
   else if (dk === 'saturday') dateCatTag = '<span class="ad-tone-tag warm" style="margin-left:6px;">🔥 周六活动</span>';
   else if (dk === 'sunday') dateCatTag = '<span class="ad-tone-tag cold" style="margin-left:6px;">☀️ 周日活动</span>';
 
-  // ---- 联系方式高亮区（核心）----
+  // ---- 联系方式高亮区（核心：超大号，视觉统治）----
   let contactHtml = '';
   const hasContact = act.contact_wechat || act.contact_phone || act.registration || act.has_qr_code || act.qr_url;
   if (hasContact) {
@@ -1326,7 +1345,7 @@ function renderDetailPanel(act) {
     contactHtml += '</div>';
   }
 
-  // 如果有 source_url 且没有显式联系方式，提示查看原链接
+  // 如果没有显式联系方式但有 source_url
   if (!hasContact && act.source_url) {
     contactHtml = `
     <div class="ad-contact-highlight" style="border-color:var(--accent);">
@@ -1338,6 +1357,18 @@ function renderDetailPanel(act) {
       <a class="ad-link" href="${act.source_url}" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block;">📎 打开原始链接 →</a>
     </div>`;
   }
+
+  // 彻底无联系方式
+  if (!hasContact && !act.source_url) {
+    contactHtml = `
+    <div class="ad-contact-highlight" style="border-color:var(--border);opacity:0.5;">
+      <div class="ad-ch-label" style="color:var(--muted);">📞 联系方式</div>
+      <div class="ad-ch-row"><span class="ad-ch-icon" style="opacity:0.4;">❓</span><div><span class="ad-ch-val small" style="color:var(--muted);">暂无联系方式</span></div></div>
+    </div>`;
+  }
+
+  // ---- 强视觉分割线（联系方式 → 活动详情，不重复右侧卡片信息）----
+  const strongDivider = '<hr class="ad-divider-strong">';
 
   // 去重信息
   let dedupHtml = '';
@@ -1360,27 +1391,7 @@ function renderDetailPanel(act) {
 
     ${contactHtml}
 
-    <div class="ad-section">
-      <div class="ad-section-title">📋 基础信息</div>
-      <div class="ad-info-grid">
-        <div class="ad-info-item">
-          <span class="ad-info-lbl">⏰ 时间</span>
-          <span class="ad-info-val large">${timeStr}</span>
-        </div>
-        <div class="ad-info-item">
-          <span class="ad-info-lbl">💰 费用</span>
-          <span class="ad-info-val">¥${feeNum || '免费'}</span>
-        </div>
-        <div class="ad-info-item">
-          <span class="ad-info-lbl">👥 人数</span>
-          <span class="ad-info-val">${capNum || '—'}人</span>
-        </div>
-        <div class="ad-info-item" style="grid-column:1/-1">
-          <span class="ad-info-lbl">📍 地址</span>
-          <span class="ad-info-val">${act.activity_location||'—'}</span>
-        </div>
-      </div>
-    </div>
+    ${strongDivider}
 
     ${(act.activity_type||[]).length ? `
     <div class="ad-section">

@@ -1,18 +1,18 @@
 {
   "meta": {
-    "generated_at": "2026-05-23T20:24:22.760779",
+    "generated_at": "2026-05-23T20:47:18.253850",
     "source": "IMA 知识库: 陈伟霆相亲库",
     "kb_id": "QDwLweZ4q6hKWAUOLc4oQxMjM-EVf1kPKFZy--cmrYk=",
-    "total_items": 24,
-    "items_with_content": 24,
+    "total_items": 21,
+    "items_with_content": 21,
     "items_with_error": 0,
     "date_categories": {
-      "saturday": 7,
-      "unknown": 2,
+      "saturday": 6,
       "sunday": 8,
-      "weekday": 5,
+      "weekday": 4,
       "friday": 1,
-      "next_week": 1
+      "next_week": 1,
+      "unknown": 1
     },
     "week_range": {
       "monday": "2026-05-18",
@@ -22,64 +22,6 @@
   "activities": [
     {
       "global_id": "ACT-001",
-      "title": "好友@你一起参与【线上·百人心动互选「 85年-95年专场」(进群参与)】活动",
-      "source_type": "weburl",
-      "source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=gQ3oR-OrGBD7TrJLAkO2Ajswj4wa2VBAN90FtEl4wsc~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
-      "folder_path": "(根目录)",
-      "error": "",
-      "activity_title": "活动时间: 05月23日(周六)10:00 - 19:00",
-      "activity_time": "活动时间: 05月23日(周六)10:00 - 19:00; 10:00 - 19:00; 05月23日; 周六",
-      "activity_location": "线上活动，进群参与",
-      "activity_type": [],
-      "cost": "",
-      "is_free": false,
-      "registration": "",
-      "contact_wechat": "",
-      "contact_phone": "",
-      "qr_url": "",
-      "capacity": "",
-      "target_group": [],
-      "organizer": "",
-      "source_mp": "",
-      "has_qr_code": false,
-      "summary": "活动时间: 05月23日(周六)10:0 | 线上活动，进群参与",
-      "date_category": "saturday"
-    },
-    {
-      "global_id": "ACT-002",
-      "title": "Screenshot_2026-05-21-01-23-40-476_com.tencent.mm.jpg",
-      "source_type": "img",
-      "source_url": "https://res-skb.ima.qq.com/5/dDkYBK8CwVpykeVaY16N4D/29133e81-fa88-4a2f-987a-d865963df95e.jpg?media_id=img_83eb24185d8abb2a771add2f664d17db_8c2850d3414565b3bc6789b18c3c840b7462816478952586&media_title=Screenshot_2026-05-21-01-23-40-476_com.tencent.mm.jpg&sign=36188fc326bbf2531363850ec33c5963a27909af&t=6a10d72b",
-      "folder_path": "(根目录)",
-      "error": "",
-      "activity_title": "活动需要实名认证",
-      "activity_time": "14:30-18:00; 05.; 28/; 00/",
-      "activity_location": "北京",
-      "activity_type": [
-        "派对/酒会",
-        "联谊/相亲"
-      ],
-      "cost": "88元",
-      "is_free": false,
-      "registration": "",
-      "contact_wechat": "",
-      "contact_phone": "",
-      "qr_url": "",
-      "capacity": "1281人; 13 人",
-      "target_group": [
-        "京房",
-        "京户",
-        "海归",
-        "名校"
-      ],
-      "organizer": "",
-      "source_mp": "",
-      "has_qr_code": false,
-      "summary": "14:30-18:00; 05.; 28 | 北京 | 88元 | 派对/酒会/联谊/相亲",
-      "date_category": "unknown"
-    },
-    {
-      "global_id": "ACT-003",
       "title": "好友@你一起参与【【thupku专场】2.0社交局】活动",
       "source_type": "weburl",
       "source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=VWc1uy56fNFhcHsmBaEMRNYjshsSSLLrCp8ScV60GEQ~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
@@ -107,7 +49,7 @@
       "date_category": "saturday"
     },
     {
-      "global_id": "ACT-004",
+      "global_id": "ACT-002",
       "title": "Screenshot_2026-05-21-01-33-19-759_com.tencent.mm.jpg",
       "source_type": "img",
       "source_url": "https://res-skb.ima.qq.com/5/dDkYBK8CwVpykeVaY16N4D/6e3eabeb-f449-4cc7-a7b7-256186c26c2d.jpg?media_id=img_83eb24185d8abb2a771add2f664d17db_cb861e023aebbb6ca8d1bc9c12c9cbfe7462816478952586&media_title=Screenshot_2026-05-21-01-33-19-759_com.tencent.mm.jpg&sign=f98798aa25dd6429889294814c0ca6948d002599&t=6a10d72e",
@@ -137,7 +79,7 @@
       "date_category": "saturday"
     },
     {
-      "global_id": "ACT-005",
+      "global_id": "ACT-003",
       "title": "好友@你一起参与【【北京】心动放风大会】活动",
       "source_type": "weburl",
       "source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=R7u-gK2Jo1zRYOCAtSNtHwiGd54WJI3q-xumQmphp_o~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
@@ -164,7 +106,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-006",
+      "global_id": "ACT-004",
       "title": "[05.23 周六]奥森轻奢露营|天幕桌椅+野餐+飞盘+掼蛋+童年游戏+麻将+王者+各种桌游+剧本杀+躲猫猫=你的超级周末！",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/BpEuJR8MElqmg8eJS2314Q",
@@ -196,7 +138,7 @@
       "date_category": "weekday"
     },
     {
-      "global_id": "ACT-007",
+      "global_id": "ACT-005",
       "title": "5.23日周六颜值打分局丨请颜值中等偏上的务必要来（真实打分，当场出分），前三名送超大福利！",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/tSPDI3dJhdSPq5WGZV-wfA",
@@ -230,7 +172,7 @@
       "date_category": "saturday"
     },
     {
-      "global_id": "ACT-008",
+      "global_id": "ACT-006",
       "title": "好友@你一起参与【【北京名校专场】2.0社交局】活动",
       "source_type": "weburl",
       "source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=3cx3KIkvzj39btnypxM0XwSgLH9uS6EI5GE0xdjXie0~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
@@ -260,7 +202,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-009",
+      "global_id": "ACT-007",
       "title": "5.24周日北京之恋-90后00后为主-专场精品联谊会",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/pxbt5wovy2JOJCdlf5tAgQ",
@@ -292,7 +234,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-010",
+      "global_id": "ACT-008",
       "title": "【5.22周五晚国贸90后95后名校海归名企高颜值微醺单身之夜，20人小规模活动】",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/k2XoyCRgVkoOI1bc7DiN8g",
@@ -326,7 +268,7 @@
       "date_category": "friday"
     },
     {
-      "global_id": "ACT-011",
+      "global_id": "ACT-009",
       "title": "【帝都0524】动心K歌，掼蛋大冒险KTV八分钟",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/rhx19z3aF2wuCI9zoHTnNg",
@@ -364,9 +306,9 @@
       "has_qr_code": false,
       "summary": "5月20日 | 北京; 北京 | 八分钟速配/桌游/KTV/唱歌",
       "_dedup_source_ids": [
-        "ACT-011",
-        "ACT-017",
-        "ACT-021"
+        "ACT-009",
+        "ACT-015",
+        "ACT-019"
       ],
       "_dedup_source_titles": [
         "【帝都0524】动心K歌，掼蛋大冒险KTV八分钟",
@@ -377,7 +319,7 @@
       "date_category": "weekday"
     },
     {
-      "global_id": "ACT-012",
+      "global_id": "ACT-010",
       "title": "前200人享特价！5月24日『京城盛恋』年度超大型相亲会|350名优质83-05单身|爱情转盘（8分钟约会）|坐标五道口 - 爱旅",
       "source_type": "weburl",
       "source_url": "https://bjailv.360jlb.cn/event?id=855218",
@@ -386,7 +328,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-013",
+      "global_id": "ACT-011",
       "title": "【北京5.24周日】爵士&电影之夜｜单身微醺派对，邂逅浪漫时刻",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/iVnbM250NJK9GS4Kjvq0hw",
@@ -421,7 +363,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-014",
+      "global_id": "ACT-012",
       "title": "5.24 | 初夏出逃计划 综艺式露营派对",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/UBz1T5R9Qv8O3UseXJQtTQ",
@@ -455,7 +397,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-015",
+      "global_id": "ACT-013",
       "title": "好友@你一起参与【北京·朝阳公园猫鼠游戏】活动",
       "source_type": "weburl",
       "source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=AxmndTCQ_aFliVywW91FIbkAva8ftu5QqnRzu6cXxZU~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
@@ -484,7 +426,7 @@
       "date_category": "saturday"
     },
     {
-      "global_id": "ACT-016",
+      "global_id": "ACT-014",
       "title": "甜蜜一夏，速来活动脱单",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/DI0ue1XOwS1gv5zKxeOjGQ",
@@ -517,7 +459,7 @@
       "date_category": "weekday"
     },
     {
-      "global_id": "ACT-017",
+      "global_id": "ACT-015",
       "title": "5.23日周六【趣味桌游+成长派对・随手拍 】｜摄影心动盲盒交友局来袭！",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/VaiG16jPSzPdCDpT4yY11Q",
@@ -547,7 +489,7 @@
       "date_category": "saturday"
     },
     {
-      "global_id": "ACT-018",
+      "global_id": "ACT-016",
       "title": "单身交友 | 5.24周日90后00后来集合！专场精品联谊，和心动的TA品咖啡、玩桌游！",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/5ugorZ-o7caTO-22874fGA",
@@ -582,7 +524,7 @@
       "date_category": "weekday"
     },
     {
-      "global_id": "ACT-019",
+      "global_id": "ACT-017",
       "title": "【单身交友】5.24周日|京户京房/高校名企专场：一场8分钟的寻爱冒险|友行友派",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/Tdnhy9z3GwYQ7zdqvt2DfA?from=timeline&scene=2&subscene=1&sessionid=1779291307&clicktime=1779297259&enterid=1779297259#wechat_redirect",
@@ -615,45 +557,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-020",
-      "title": "同学之约 | 5.24 五道口 高知群体单身联谊",
-      "source_type": "wechatarticle",
-      "source_url": "https://mp.weixin.qq.com/s/sm5vGgfhgmZcCu9Pg8CcLQ",
-      "folder_path": "(根目录)",
-      "error": "",
-      "activity_title": "同学之约 | 5.24 五道口 高知群体单身联谊",
-      "activity_time": "时间：活动开始前1小时（女生或男生名额满得情况下会提前关闭报名系统）; 13：30-17：00; 5.; 5月21日; 5月23日",
-      "activity_location": "海淀区",
-      "activity_type": [
-        "露营/户外",
-        "桌游",
-        "徒步/爬山",
-        "派对/酒会",
-        "运动",
-        "联谊/相亲",
-        "艺术/电影",
-        "讲座/沙龙"
-      ],
-      "cost": "30元/; 148元/; 118元/",
-      "is_free": true,
-      "registration": "(含二维码)",
-      "contact_wechat": "",
-      "contact_phone": "",
-      "qr_url": "",
-      "capacity": "80人",
-      "target_group": [
-        "京房",
-        "硕士",
-        "高知"
-      ],
-      "organizer": "",
-      "source_mp": "",
-      "has_qr_code": true,
-      "summary": "时间：活动开始前1小时（女生或男生名额满 | 海淀区 | 30元/; 148元/; 11 | 露营/户外/桌游/徒步/爬山",
-      "date_category": "weekday"
-    },
-    {
-      "global_id": "ACT-021",
+      "global_id": "ACT-018",
       "title": "看简历，见真人，直接谈|千人脱单大集",
       "source_type": "weburl",
       "source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=FXSZq9JzszrWpLSeEeVUGLl5AuLs_H18utlwE9Bi_K0~&inviterId&channelId",
@@ -680,7 +584,7 @@
       "date_category": "next_week"
     },
     {
-      "global_id": "ACT-022",
+      "global_id": "ACT-019",
       "title": "腾讯ima - 明止的知识库",
       "source_type": "weburl",
       "source_url": "https://ima.qq.com/wikis",
@@ -689,7 +593,7 @@
       "date_category": "unknown"
     },
     {
-      "global_id": "ACT-023",
+      "global_id": "ACT-020",
       "title": "重磅官宣！果壳鹊桥受邀作为技术支持方， 深度参与“海淀有缘・为 AI 而生” 科技青年交友活动",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/ZFcKI4cslCW6mzP2zNkIvg",
@@ -719,7 +623,7 @@
       "date_category": "sunday"
     },
     {
-      "global_id": "ACT-024",
+      "global_id": "ACT-021",
       "title": "大桂拉尖 | 5月23日，易县“小黄山”，邂逅太行秘境与天外飞来石",
       "source_type": "wechatarticle",
       "source_url": "https://mp.weixin.qq.com/s/OeMpvUgdhd6572hZcLnoxg",
