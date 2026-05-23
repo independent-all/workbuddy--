@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>周末交友战术指挥舱 v7.5 — 全量生产 + 滚动条防御 + C4防挤压</title>
+<title>周末交友战术指挥舱 v7.6 — 地图容错 + 无效字段降噪 + 视觉聚焦</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
 /* ============================================================
-   周末交友战术指挥舱 v7.5
-   A区: Master-Detail + 联系方式视觉统治 + 零重复（无时间/地点/费用）
-   B区: 大地图 + 编号图钉
-   C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图时间感知蛇形
-   三区 global_id 联动 | 三色卡片硬隔离 | C4看板 min-width 防挤压
+   周末交友战术指挥舱 v7.6
+   A区: Master-Detail + 联系方式视觉统治 + 零重复
+   B区: 大地图 + 编号图钉 + 待定地点容错跳过
+   C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图
+   三区联动 | 三色硬隔离 | 无效字段灰化降噪
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -428,6 +428,7 @@ body {
 .poster-meta .pm-item { display: flex; gap: 3px; }
 .poster-meta .pm-lbl { opacity: 0.55; font-size: 10px; }
 .poster-meta .pm-val { font-weight: 500; }
+.poster-meta .pm-val.pm-dimmed { opacity: 0.45; color: var(--muted); font-weight: 400; }
 
 .poster-details { display: flex; flex-direction: column; gap: 2px; }
 .poster-detail-row {
@@ -901,7 +902,7 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ================================================================
-// 周末交友战术指挥舱 v7.5 — 全量生产 + 滚动条防御 + C4防挤压
+// 周末交友战术指挥舱 v7.6 — 地图容错 + 无效字段降噪 + 视觉聚焦
 // ================================================================
 
 // ===== 全局变量 =====
@@ -1269,6 +1270,10 @@ function renderPosterCard(a) {
 
   const title = (a.activity_title||a.title||'未命名活动').substring(0,30);
   const loc = (a.activity_location||'—').substring(0,20);
+  const costRaw = (a.cost || '').trim();
+  const isCostDimmed = costRaw === '详见详情' || costRaw === '未知';
+  const isLocDimmed = (a.activity_location || '').includes('待定');
+  const costDisplay = isCostDimmed ? costRaw : `¥${feeNum || '免费'}`;
   const dateCatLabel = dk === 'weekday' ? '📅工作日' : (dk === 'next_week' ? '📅下周' : (dk === 'friday' ? '📅周五' : (dk === 'saturday' ? '📅周六' : (dk === 'sunday' ? '📅周日' : ''))));
   const organizerStr = a.organizer ? ' | ' + a.organizer : '';
 
@@ -1282,9 +1287,9 @@ function renderPosterCard(a) {
       <div class="poster-name">${dateCatLabel ? '<span style="font-size:9px;opacity:0.7;">'+dateCatLabel+'</span> ' : ''}${title}</div>
       <div class="poster-meta">
         <div class="pm-item"><span class="pm-lbl">时间</span><span class="pm-val">${timeStr}</span></div>
-        <div class="pm-item"><span class="pm-lbl">费用</span><span class="pm-val">¥${feeNum||'免费'}</span></div>
+        <div class="pm-item"><span class="pm-lbl">费用</span><span class="pm-val${isCostDimmed ? ' pm-dimmed' : ''}">${costDisplay}</span></div>
         <div class="pm-item"><span class="pm-lbl">人数</span><span class="pm-val">${capNum||'—'}人</span></div>
-        <div class="pm-item" style="grid-column:1/-1"><span class="pm-lbl">📍</span><span class="pm-val">${loc}${organizerStr}</span></div>
+        <div class="pm-item" style="grid-column:1/-1"><span class="pm-lbl">📍</span><span class="pm-val${isLocDimmed ? ' pm-dimmed' : ''}">${loc}${organizerStr}</span></div>
       </div>
       ${(a.activity_type||[]).length ? `<div class="poster-details"><div class="poster-detail-row"><span class="poster-detail-icon">🎪</span><span class="poster-detail-text">${(a.activity_type||[]).join('/')}</span></div></div>` : ''}
       ${(a.summary||'') ? `<div class="poster-essence">${(a.summary||'').substring(0,60)}</div>` : ''}
@@ -1489,6 +1494,10 @@ function renderMap(filter) {
 
   const R = 0.05;
   activities.forEach(act => {
+    // 🔥 地点待定 → 跳过地图标记，保持地图视野战术纯净
+    const locVal = act.activity_location || '';
+    if (locVal.includes('待定')) return;
+
     const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
     const angle = (gidNum * 137.5) % 360 * Math.PI / 180;
     const radius = ((gidNum * 7) % 100) / 100 * R;

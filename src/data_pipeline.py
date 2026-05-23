@@ -1,6 +1,6 @@
 """
 ============================================================================
- data_pipeline.py — 活动信息结构化解析管道 (v2.5 硬性防火墙版 — cost纯数字拦截 + location模糊词封杀 + time截断)
+ data_pipeline.py — 活动信息结构化解析管道 (v2.6 AI评分版 — 用户画像智能契合度评分 + 六关防火墙)
 ============================================================================
  职责:
    1. 优先调用 LLM (OpenAI 兼容 API) 将 raw_text 解析为结构化 JSON
@@ -80,7 +80,7 @@ JSON 的第一个字段必须是 "_thinking_process"，格式如下：
 ===== 输出格式（严格遵守，_thinking_process 必须在第一个！）=====
 
 {
-  "_thinking_process": "1.时间: ... 2.地点: ... 3.费用: ... 4.联系方式: ...",
+  "_thinking_process": "1.时间: ... 2.地点: ... 3.费用: ... 4.联系方式: ... 5.评分逻辑: ...",
   "activity_title": "简短有吸引力的活动标题，20字以内",
   "activity_time": "MM月DD日 HH:MM-HH:MM",
   "activity_location": "纯地理地址",
@@ -92,7 +92,9 @@ JSON 的第一个字段必须是 "_thinking_process"，格式如下：
   "contact_phone": "手机号",
   "organizer": "主办方",
   "activity_type": ["类型"],
-  "is_free": false
+  "is_free": false,
+  "ai_score": 0,
+  "ai_reason": "评分缺省"
 }
 
 ===== 严苛字段约束 =====
@@ -119,13 +121,37 @@ JSON 的第一个字段必须是 "_thinking_process"，格式如下：
 - 不编造，无信息填 '' 或 []
 - 只输出纯 JSON，无 Markdown 标记
 
+===== 🔥 AI 契合度智能评分（基于目标用户画像）=====
+
+⚠️ 你必须根据以下用户画像对活动进行 0-100 打分：
+
+【目标用户画像】
+38岁成熟男性，工程师背景，逻辑严密，时间紧迫，寻求高质量、深度的社交环境。
+
+【高分权重（80-100分）】
+- 明确的小规模活动（8-15人内）
+- 要求学历门槛（本科及以上）或职业门槛
+- 深度交流属性：硬核桌游、推理/剧本杀、行业沙龙、投资交流、读书会
+- 成熟年龄段定位（28-45岁）
+
+【低分惩罚（<60分）】
+- 百人以上大型相亲海选
+- 极度喧闹的派对/蹦迪/夜店类
+- 主打"00后"或极度年轻化（22岁以下）的局
+- 营销意味极浓的"集市""嘉年华""万人"类活动
+
+【ai_reason 规范】
+- 不超过 15 个字的中文短评，直指加分项或扣分项
+- 示例："人数少且逻辑深度高"、"规模过大缺乏深度"
+- 严禁空洞评语如"不错""还行""一般"
+
 ===== Few-Shot CoT 示例（必须模仿！）=====
 
 输入：5月24日下午两点，朝阳三里屯，费用198，微信xyz123，电话13800138000。
 
 输出：
 {
-  "_thinking_process": "提取198为费用，剔除电话13800138000，地点精简为北京市朝阳区三里屯",
+  "_thinking_process": "提取198为费用，剔除电话13800138000，地点精简为北京市朝阳区三里屯，活动偏小规模(推测20人内)，目标年龄段匹配，评分中上",
   "activity_title": "朝阳三里屯相亲活动",
   "activity_time": "05月24日 14:00-17:00",
   "activity_location": "北京市朝阳区三里屯",
@@ -137,7 +163,9 @@ JSON 的第一个字段必须是 "_thinking_process"，格式如下：
   "contact_phone": "13800138000",
   "organizer": "",
   "activity_type": ["联谊/相亲"],
-  "is_free": false
+  "is_free": false,
+  "ai_score": 72,
+  "ai_reason": "规模适中年龄段匹配"
 }
 
 请严格按以上模式输出，_thinking_process 必须最先出现！"""
@@ -806,6 +834,23 @@ class DataPipeline:
         if not isinstance(result.get('is_free'), bool):
             val = result.get('is_free', False)
             result['is_free'] = bool(val) if val not in ('false', 'False', '0') else False
+
+        # —— ai_score / ai_reason 安全兜底：防止缺失或非数字导致前端崩溃 ——
+        try:
+            ai_score = int(result.get('ai_score', 50))
+            if ai_score < 0 or ai_score > 100:
+                ai_score = 50
+            result['ai_score'] = ai_score
+        except (ValueError, TypeError):
+            result['ai_score'] = 50
+            logger.warning(f"  ⚠️ ai_score 无效，已强制兜底为50")
+
+        ai_reason = str(result.get('ai_reason', '')).strip()
+        if not ai_reason or len(ai_reason) == 0 or ai_reason.lower() == 'none':
+            result['ai_reason'] = '评分缺省'
+        elif len(ai_reason) > 15:
+            result['ai_reason'] = ai_reason[:15]
+            logger.warning(f"  ⚠️ ai_reason 过长，已截断至15字")
 
         # —— 最后防线：删除 CoT 思维链，禁止泄露到前端 ——
         result.pop('_thinking_process', None)
