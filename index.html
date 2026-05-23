@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>周末交友战术指挥舱 v7.7 — 战术简报大屏 + 地图容错 + 降噪</title>
+<title>周末交友战术指挥舱 v7.8 — 数据类型防御修复 + 战术简报try-catch隔离</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
 /* ============================================================
-   周末交友战术指挥舱 v7.7
-   + 战术简报顶栏: 🎯 + Markdown **加粗** → 炽金色高亮 + 防御性隐藏
+   周末交友战术指挥舱 v7.8
+   + String()原生强制转换: 所有.replace()前强制String(x||'')
+   + safeStr/safeArray 全局类型防御: Array→String自动转换
+   + 战术简报顶栏: 🎯 + try-catch完整隔离 + 炽金色高亮 + 防御性隐藏
    A区: Master-Detail + 联系方式视觉统治 + 零重复
    B区: 大地图 + 编号图钉 + 待定地点容错跳过
    C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图
@@ -933,7 +935,7 @@ body.mobile-mode .tactical-briefing-bar .tb-icon { font-size: 20px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ================================================================
-// 周末交友战术指挥舱 v7.7 — 战术简报大屏 + 地图容错 + 无效字段降噪 + 视觉聚焦
+// 周末交友战术指挥舱 v7.8 — String()原生强制转换 + 战术简报try-catch隔离
 // ================================================================
 
 // ===== 全局变量 =====
@@ -982,7 +984,9 @@ async function loadRealData() {
     buildGlobalIdMap();
     setupFilterTabs();
     applyFilter('all');
-    renderTacticalBriefing(data);
+    try { renderTacticalBriefing(data); } catch (e) {
+      console.warn('[战术指挥舱] 简报渲染失败（已隔离）:', e.message);
+    }
 
   } catch (e) {
     console.error('[战术指挥舱] 加载数据失败:', e);
@@ -994,24 +998,46 @@ async function loadRealData() {
 
 // ===== 战术简报渲染 =====
 function renderTacticalBriefing(data) {
-  const bar = document.getElementById('tactical-briefing-bar');
-  const content = document.getElementById('tb-content');
-  if (!bar || !content) return;
+  try {
+    const bar = document.getElementById('tactical-briefing-bar');
+    const content = document.getElementById('tb-content');
+    if (!bar || !content) return;
 
-  const briefing = data?.meta?.tactical_briefing;
-  // 防御性隐藏：为空、不存在、非字符串或仅空白则完全隐藏
-  if (!briefing || typeof briefing !== 'string' || !briefing.trim()) {
-    bar.style.display = 'none';
-    return;
+    const briefing = data?.meta?.tactical_briefing;
+    // 防御性隐藏：为空、不存在、非字符串或仅空白则完全隐藏
+    if (!briefing || typeof briefing !== 'string' || !briefing.trim()) {
+      bar.style.display = 'none';
+      return;
+    }
+
+    // 渲染 Markdown：**加粗** → <strong> 炽金色
+    let html = briefing.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // 换行处理
+    html = html.replace(/\n/g, '<br>');
+    content.innerHTML = html;
+    bar.style.display = 'flex';
+    console.log('[战术指挥舱] 战术简报已渲染:', briefing.substring(0, 50) + '...');
+  } catch (e) {
+    console.warn('[战术指挥舱] 简报解析失败（已隔离）:', e.message);
+    var bar = document.getElementById('tactical-briefing-bar');
+    if (bar) bar.style.display = 'none';
   }
+}
 
-  // 渲染 Markdown：**加粗** → <strong> 炽金色
-  let html = briefing.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // 换行处理
-  html = html.replace(/\n/g, '<br>');
-  content.innerHTML = html;
-  bar.style.display = 'flex';
-  console.log('[战术指挥舱] 战术简报已渲染:', briefing.substring(0, 50) + '...');
+// ===== 类型安全防御工具 =====
+// safeStr: 将任意值安全转为字符串，防止 .replace is not a function
+function safeStr(val, defaultVal) {
+  if (val === null || val === undefined) return defaultVal !== undefined ? String(defaultVal) : '';
+  if (Array.isArray(val)) return val.join(', ');
+  return String(val);
+}
+
+// safeArray: 将任意值安全转为数组，兼容旧版字符串格式
+function safeArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  // 旧版字符串："桌游/相亲" 或 "单身,80后" → 拆分为数组
+  return String(val).split(/[,，/、]/).map(function(s) { return s.trim(); }).filter(Boolean);
 }
 
 // ===== 工具函数 =====
@@ -1110,7 +1136,7 @@ function buildGlobalIdMap() {
   conflictIdSet = new Set();
   conflictMap = {};
   allActivities.forEach(act => {
-    const gid = parseInt((act.global_id || '0').replace(/\D/g,'')) || 0;
+    const gid = parseInt(String(act.global_id || '0').replace(/\D/g,'')) || 0;
     if (gid > 0) {
       globalIdMap[gid] = { activity: act, dayKey: getActivityDayKey(act) };
     }
@@ -1213,7 +1239,7 @@ function updateGanttDayHeader(filter) {
   const lbl = DAY_LABELS_FULL[filter] || '全局 · 全部活动';
   document.getElementById('gdh-label').textContent = lbl;
   const acts = getActivitiesByDay(filter);
-  const totalFee = acts.reduce((s,a) => s + (parseInt((a.cost||'0').replace(/[^\d]/g,''))||0), 0);
+  const totalFee = acts.reduce((s,a) => s + (parseInt(String(a.cost || '0').replace(/[^\d]/g,''))||0), 0);
   document.getElementById('gdh-stats').textContent = acts.length + '场 · ¥' + totalFee;
 }
 
@@ -1221,7 +1247,7 @@ function updateGanttDayHeader(filter) {
 function renderStatsRibbon(filter) {
   const all = getActivitiesByDay(filter);
   const totalEvents = all.length;
-  const totalBudget = all.reduce((s,a) => s + (parseInt((a.cost||'0').replace(/[^\d]/g,''))||0), 0);
+  const totalBudget = all.reduce((s,a) => s + (parseInt(String(a.cost || '0').replace(/[^\d]/g,''))||0), 0);
   const total = all.length || 1;
 
   // 统计时间分类
@@ -1241,7 +1267,7 @@ function renderStatsRibbon(filter) {
     <div class="sr-divider"></div>
     <div class="sr-item"><span class="sr-val">¥${totalBudget.toLocaleString()}</span><span class="sr-lbl">预算</span></div>
     <div class="sr-divider"></div>
-    <div class="sr-item"><span class="sr-val">${all.reduce((s,a)=>s+(parseInt((a.capacity||'0').replace(/[^\d]/g,''))||0),0)}</span><span class="sr-lbl">人流量</span></div>
+    <div class="sr-item"><span class="sr-val">${all.reduce((s,a)=>s+(parseInt(String(a.capacity || '0').replace(/[^\d]/g,''))||0),0)}</span><span class="sr-lbl">人流量</span></div>
     ${extraStats ? '<div class="sr-divider"></div>' + extraStats : ''}
   `;
 }
@@ -1286,14 +1312,15 @@ function renderGallery(filter) {
 }
 
 function renderPosterCard(a) {
-  const gid = a.global_id || '?';
-  const gidNum = parseInt(gid.replace(/\D/g,'')) || 0;
+  const gid = safeStr(a.global_id, '?');
+  const gidNum = parseInt(String(gid).replace(/\D/g,'')) || 0;
   const times = parseActivityTimes(a);
   const timeStr = times.start ? times.start.slice(11,16) + ' ~ ' + times.end.slice(11,16) : '时间待定';
   const dk = getActivityDayKey(a);
-  const tone = (a.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
-  const feeNum = parseInt((a.cost||'0').replace(/[^\d]/g,'')) || 0;
-  const capNum = parseInt((a.capacity||'0').replace(/[^\d]/g,'')) || 0;
+  const types = safeArray(a.activity_type);
+  const tone = types.some(function(t) { return t.includes('派对') || t.includes('酒会'); }) ? 'warm' : 'cold';
+  const feeNum = parseInt(String(a.cost || '0').replace(/[^\d]/g,'')) || 0;
+  const capNum = parseInt(String(a.capacity || '0').replace(/[^\d]/g,'')) || 0;
   const hasImage = a.source_type === 'img' && a.source_url && a.source_url.startsWith('http');
 
   // 颜色区分
@@ -1345,7 +1372,7 @@ function renderPosterCard(a) {
         <div class="pm-item"><span class="pm-lbl">人数</span><span class="pm-val">${capNum||'—'}人</span></div>
         <div class="pm-item" style="grid-column:1/-1"><span class="pm-lbl">📍</span><span class="pm-val${isLocDimmed ? ' pm-dimmed' : ''}">${loc}${organizerStr}</span></div>
       </div>
-      ${(a.activity_type||[]).length ? `<div class="poster-details"><div class="poster-detail-row"><span class="poster-detail-icon">🎪</span><span class="poster-detail-text">${(a.activity_type||[]).join('/')}</span></div></div>` : ''}
+      ${types.length ? `<div class="poster-details"><div class="poster-detail-row"><span class="poster-detail-icon">🎪</span><span class="poster-detail-text">${types.join('/')}</span></div></div>` : ''}
       ${(a.summary||'') ? `<div class="poster-essence">${(a.summary||'').substring(0,60)}</div>` : ''}
       <div class="poster-footer">
         ${a.source_url ? `<a class="poster-link" href="${a.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 原始链接</a>` : `<span class="poster-link" style="color:var(--muted);cursor:default;opacity:0.4;">📎 无链接</span>`}
@@ -1368,10 +1395,12 @@ function renderDetailPlaceholder() {
 function renderDetailPanel(act) {
   if (!act) { renderDetailPlaceholder(); return; }
   const scroll = document.getElementById('a-detail-scroll');
-  const gid = act.global_id || '?';
-  const gidNum = parseInt(gid.replace(/\D/g,'')) || 0;
-  const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
+  const gid = safeStr(act.global_id, '?');
+  const gidNum = parseInt(String(gid).replace(/\D/g,'')) || 0;
+  const types = safeArray(act.activity_type);
+  const tone = types.some(function(t) { return t.includes('派对') || t.includes('酒会'); }) ? 'warm' : 'cold';
   const dk = getActivityDayKey(act);
+  const targetGroups = safeArray(act.target_group);
 
   // 日期类别标签
   let dateCatTag = '';
@@ -1452,10 +1481,10 @@ function renderDetailPanel(act) {
 
     ${strongDivider}
 
-    ${(act.activity_type||[]).length ? `
+    ${types.length ? `
     <div class="ad-section">
       <div class="ad-section-title">🎪 活动类型</div>
-      <div class="ad-core">${(act.activity_type||[]).join(' / ')}</div>
+      <div class="ad-core">${types.join(' / ')}</div>
     </div>` : ''}
 
     ${(act.organizer||'') ? `
@@ -1464,10 +1493,10 @@ function renderDetailPanel(act) {
       <div class="ad-core">${act.organizer}</div>
     </div>` : ''}
 
-    ${(act.target_group||[]).length ? `
+    ${targetGroups.length ? `
     <div class="ad-section">
       <div class="ad-section-title">🎯 目标人群</div>
-      <div class="ad-core">${(act.target_group||[]).join(' / ')}</div>
+      <div class="ad-core">${targetGroups.join(' / ')}</div>
     </div>` : ''}
 
     ${dedupHtml}
@@ -1520,7 +1549,7 @@ function fitMap(activities) {
 }
 
 function buildPopup(act) {
-  const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
+  const gidNum = parseInt(String(act.global_id || '0').replace(/\D/g,'')) || 0;
   const times = parseActivityTimes(act);
   const t = times.start ? times.start.slice(11,16) + ' ~ ' + times.end.slice(11,16) : '待定';
   return `<div style="font-size:11px;line-height:1.6;min-width:200px">
@@ -1552,7 +1581,7 @@ function renderMap(filter) {
     const locVal = act.activity_location || '';
     if (locVal.includes('待定')) return;
 
-    const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
+    const gidNum = parseInt(String(act.global_id || '0').replace(/\D/g,'')) || 0;
     const angle = (gidNum * 137.5) % 360 * Math.PI / 180;
     const radius = ((gidNum * 7) % 100) / 100 * R;
     const lat = ORIGIN.lat + Math.cos(angle) * radius;
@@ -1605,7 +1634,7 @@ function renderC4Weather(filter) {
     <div class="c4w-label">${dayLabel}</div>
     <div class="c4w-icon">${w.icon}</div>
     <div class="c4w-desc">${w.desc}</div>
-    <div class="c4w-temp">${w.temp.replace(' ~ ', '<br>')}</div>
+    <div class="c4w-temp">${String(w.temp || '').replace(' ~ ', '<br>')}</div>
     ${limitHtml}
   `;
 }
@@ -1624,7 +1653,7 @@ function renderC4WeekdayBoard() {
   if (!wdActs.length) return;
 
   wdActs.forEach(act => {
-    const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
+    const gidNum = parseInt(String(act.global_id || '0').replace(/\D/g,'')) || 0;
     const times = parseActivityTimes(act);
     const timeStr = times.start ? times.start.slice(11,16) : '—';
     const name = (act.activity_title||act.title||'').substring(0,16);
@@ -1726,7 +1755,7 @@ function renderGanttChart(filter) {
     if (!trackEl) return;
 
     trackAssignments[trackId].forEach(({ act, idx, sMin, eMin }) => {
-      const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
+      const gidNum = parseInt(String(act.global_id || '0').replace(/\D/g,'')) || 0;
       const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
       const times = parseActivityTimes(act);
 

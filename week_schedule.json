@@ -1,19 +1,19 @@
 {
   "meta": {
-    "generated_at": "2026-05-23T22:20:59.296534",
+    "generated_at": "2026-05-23T23:54:12.201871",
     "source": "IMA 知识库: 陈伟霆相亲库",
     "kb_id": "QDwLweZ4q6hKWAUOLc4oQxMjM-EVf1kPKFZy--cmrYk=",
     "total_items": 23,
     "pipeline_version": "v3.1",
-    "field_degradations": 29,
+    "field_degradations": 27,
     "date_categories": {
-      "saturday": 8,
+      "saturday": 9,
       "sunday": 10,
       "friday": 2,
       "weekday": 1,
-      "unknown": 2
+      "unknown": 1
     },
-    "tactical_briefing": "**周日** · 北京名校专场2.0社交局 — 高学历筛选，人脉价值高，95分",
+    "tactical_briefing": "**周日** · 北京名校专场社交局 — 高学历筛选，效率最高，85分",
     "week_range": {
       "monday": "2026-05-18",
       "next_monday": "2026-05-25"
@@ -38,7 +38,7 @@
         "桌游"
       ],
       "ai_score": 72,
-      "ai_reason": "44人thupku研究生专属社",
+      "ai_reason": "44人thupku研究生专属，",
       "_media_id": "weburl_83eb24185d8abb2a771add2f664d17db_47039ce876ba1b3ad94c5236a6374fe67462816478952586",
       "_source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=VWc1uy56fNFhcHsmBaEMRNYjshsSSLLrCp8ScV60GEQ~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
       "global_id": 1
@@ -58,11 +58,11 @@
       "contact_phone": "",
       "organizer": "撒糖恋爱所",
       "activity_type": [
-        "线上相亲",
-        "互选"
+        "相亲",
+        "线上"
       ],
       "ai_score": 72,
-      "ai_reason": "50人线上互选，年龄筛选85-",
+      "ai_reason": "50人以上85-95线上相亲",
       "_media_id": "img_83eb24185d8abb2a771add2f664d17db_cb861e023aebbb6ca8d1bc9c12c9cbfe7462816478952586",
       "_source_url": "https://res-skb.ima.qq.com/5/dDkYBK8CwVpykeVaY16N4D/6e3eabeb-f449-4cc7-a7b7-256186c26c2d.jpg?media_id=img_83eb24185d8abb2a771add2f664d17db_cb861e023aebbb6ca8d1bc9c12c9cbfe7462816478952586&media_title=Screenshot_2026-05-21-01-33-19-759_com.tencent.mm.jpg&sign=f98798aa25dd6429889294814c0ca6948d002599&t=6a10d72e",
       "global_id": 2
@@ -81,8 +81,8 @@
       "activity_type": [
         "单身交友"
       ],
-      "ai_score": 30,
-      "ai_reason": "673人大型活动，无筛选",
+      "ai_score": 25,
+      "ai_reason": "百人海选00后，不匹配",
       "_media_id": "weburl_83eb24185d8abb2a771add2f664d17db_f35631043177cb85253fb6e4ca23e1c67462816478952586",
       "_source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=R7u-gK2Jo1zRYOCAtSNtHwiGd54WJI3q-xumQmphp_o~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
       "global_id": 3
@@ -97,8 +97,8 @@
       "target_group": [
         "18-35岁"
       ],
-      "contact_wechat": "16619854597",
-      "contact_phone": "",
+      "contact_wechat": "",
+      "contact_phone": "16619854597",
       "organizer": "北京初心户外旅行",
       "activity_type": [
         "露营",
@@ -107,8 +107,8 @@
         "剧本杀",
         "社交"
       ],
-      "ai_score": 60,
-      "ai_reason": "大规模户外社交，无硬核筛选",
+      "ai_score": 50,
+      "ai_reason": "无人数限制，年龄范围广，活动多",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_7bff6cce31d6e565c7db97c6d1c68bfe7462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/BpEuJR8MElqmg8eJS2314Q",
       "global_id": 4
@@ -163,7 +163,7 @@
         "社交",
         "桌游"
       ],
-      "ai_score": 95,
+      "ai_score": 85,
       "ai_reason": "13人精品局，高学历筛选",
       "_media_id": "weburl_83eb24185d8abb2a771add2f664d17db_86440a178cf8a6012ebaf868fa00b1b37462816478952586",
       "_source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=3cx3KIkvzj39btnypxM0XwSgLH9uS6EI5GE0xdjXie0~&inviterId=64Vg8sbudkGvhRmGA1cEBMV33lh_n6EItphq832BIhc~&channelId",
@@ -174,11 +174,13 @@
       "activity_time": "15:00 - 18:00",
       "date_category": "sunday",
       "activity_location": "北京三里屯地铁站附近",
-      "cost": "详见原文",
+      "cost": "男生128/女生118",
       "capacity": "",
       "target_group": [
         "90后",
-        "00后"
+        "00后",
+        "单身",
+        "1988-2006年"
       ],
       "contact_wechat": "bjlysp",
       "contact_phone": "18001211696",
@@ -187,8 +189,8 @@
         "相亲",
         "联谊"
       ],
-      "ai_score": 50,
-      "ai_reason": "90后00后为主，无硬性门槛",
+      "ai_score": 35,
+      "ai_reason": "90后00后为主，大规模无筛选",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_addba1ea64b7405e6739772c9944bc087462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/pxbt5wovy2JOJCdlf5tAgQ",
       "global_id": 7
@@ -198,7 +200,7 @@
       "activity_time": "20:00 - 24:00",
       "date_category": "friday",
       "activity_location": "具体地点待定",
-      "cost": "169/189",
+      "cost": "早鸟169/人，正价189/人",
       "capacity": "18-30人",
       "target_group": [
         "90后",
@@ -213,11 +215,11 @@
       "organizer": "屿见心动计划",
       "activity_type": [
         "单身酒会",
-        "微醺社交",
-        "相亲"
+        "相亲",
+        "社交"
       ],
       "ai_score": 70,
-      "ai_reason": "20人小规模，有学历职业门槛",
+      "ai_reason": "20人小规模，有学历职业筛选，",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_9961e1ac62238c0fbc04ea5b3648418c7462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/k2XoyCRgVkoOI1bc7DiN8g",
       "global_id": 8
@@ -235,10 +237,11 @@
       "organizer": "陌上花开HIMMR北京",
       "activity_type": [
         "K歌",
-        "掼蛋"
+        "掼蛋",
+        "相亲"
       ],
       "ai_score": 50,
-      "ai_reason": "信息不足，默认评分",
+      "ai_reason": "信息不足，无规模筛选",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_b6ebe391c75baf8ccdcef0ac5407ab4b7462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/rhx19z3aF2wuCI9zoHTnNg",
       "global_id": 9
@@ -253,18 +256,16 @@
       "target_group": [
         "83-05年出生",
         "本科及以上",
-        "京房/京户/公务员/年收入≥15W(男)",
-        "专科及以上/京房/京户/公务员/95后/年收入≥10W(女)"
+        "专科及以上"
       ],
       "contact_wechat": "",
       "contact_phone": "18810392873",
       "organizer": "北京爱旅",
       "activity_type": [
-        "相亲",
-        "联谊"
+        "相亲"
       ],
-      "ai_score": 30,
-      "ai_reason": "350人大型相亲会，无精品筛选",
+      "ai_score": 50,
+      "ai_reason": "350人大型相亲，有门槛但规模",
       "_media_id": "weburl_83eb24185d8abb2a771add2f664d17db_fa2bca07111f0c7910d46c681be43e347462816478952586",
       "_source_url": "https://bjailv.360jlb.cn/event?id=855218",
       "global_id": 10
@@ -312,10 +313,10 @@
       "activity_type": [
         "露营",
         "社交",
-        "综艺"
+        "综艺游戏"
       ],
       "ai_score": 72,
-      "ai_reason": "高学历筛选露营社交，中等规模",
+      "ai_reason": "有学历筛选，中等规模社交",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_c8fb5cdcc53b2e1dec0536ed846e00d67462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/UBz1T5R9Qv8O3UseXJQtTQ",
       "global_id": 12
@@ -374,7 +375,7 @@
         "25-38岁",
         "本科及以上",
         "京户京房",
-        "211/985"
+        "名校名企"
       ],
       "contact_wechat": "",
       "contact_phone": "",
@@ -383,7 +384,7 @@
         "相亲",
         "联谊"
       ],
-      "ai_score": 70,
+      "ai_score": 60,
       "ai_reason": "百人规模有筛选，但非精品局",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_42b0610533003434c989f57fde83dd7b7462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/k50xVcHQq14eudh1AzO7mQ",
@@ -412,7 +413,7 @@
       "global_id": 16
     },
     {
-      "activity_title": "单身交友",
+      "activity_title": "90后00后专场精品联谊",
       "activity_time": "14:30 - 18:00",
       "date_category": "sunday",
       "activity_location": "具体地点待定",
@@ -428,10 +429,11 @@
       "organizer": "恋爱家",
       "activity_type": [
         "相亲",
+        "联谊",
         "桌游"
       ],
-      "ai_score": 70,
-      "ai_reason": "40人精品专场，有筛选但年龄偏",
+      "ai_score": 50,
+      "ai_reason": "40人90后00后专场，中等规",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_8c70d995ab9bdad02f887c25f83513297462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/5ugorZ-o7caTO-22874fGA",
       "global_id": 17
@@ -448,7 +450,8 @@
         "本科及以上",
         "京户",
         "京房",
-        "211/985"
+        "211/985",
+        "名校名企"
       ],
       "contact_wechat": "Yo_Party",
       "contact_phone": "",
@@ -466,7 +469,7 @@
     {
       "activity_title": "百人场联谊",
       "activity_time": "14:00 - 17:00",
-      "date_category": "unknown",
+      "date_category": "saturday",
       "activity_location": "具体地点待定",
       "cost": "129元",
       "capacity": "100人",
@@ -479,11 +482,11 @@
       "contact_phone": "",
       "organizer": "恋爱森林",
       "activity_type": [
-        "联谊",
-        "相亲"
+        "相亲",
+        "联谊"
       ],
       "ai_score": 25,
-      "ai_reason": "百人海选，00后免费，无硬核筛",
+      "ai_reason": "百人海选00后，不匹配",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_0168a98471c06a67f3c2853727f37e2d7462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/RDKmfBoRtkPa7sIb8R3Ulw",
       "global_id": 19
@@ -496,7 +499,7 @@
       "cost": "详见原文",
       "capacity": "215人",
       "target_group": [],
-      "contact_wechat": "",
+      "contact_wechat": "撒糖恋爱所 所长",
       "contact_phone": "",
       "organizer": "",
       "activity_type": [
@@ -504,7 +507,7 @@
         "脱单"
       ],
       "ai_score": 30,
-      "ai_reason": "百人海选，无筛选",
+      "ai_reason": "215人大型海选，无筛选",
       "_media_id": "weburl_83eb24185d8abb2a771add2f664d17db_c7c3a01c612f496480d496f56448e31b7462816478952586",
       "_source_url": "https://www.themarryapp.com/mpa/activity/detail?activityId=FXSZq9JzszrWpLSeEeVUGLl5AuLs_H18utlwE9Bi_K0~&inviterId&channelId",
       "global_id": 20
@@ -528,29 +531,31 @@
       "global_id": 21
     },
     {
-      "activity_title": "海淀有缘·为AI而生",
+      "activity_title": "海淀有缘·为AI而生科技青年交友活动",
       "activity_time": "15:30 - 19:00",
       "date_category": "sunday",
       "activity_location": "北京AI原点社区",
       "cost": "免费",
       "capacity": "200人",
       "target_group": [
-        "本科及以上"
+        "本科以上",
+        "科技青年"
       ],
       "contact_wechat": "",
       "contact_phone": "",
       "organizer": "海淀区总工会、团区委、区妇联",
       "activity_type": [
-        "交友"
+        "交友",
+        "科技"
       ],
       "ai_score": 35,
-      "ai_reason": "200人大型活动，无年龄筛选",
+      "ai_reason": "200人海选，无年龄筛选",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_c0aeddaf441d68eb1747d20577e897817462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/ZFcKI4cslCW6mzP2zNkIvg",
       "global_id": 22
     },
     {
-      "activity_title": "大桂拉尖",
+      "activity_title": "大桂拉尖 | 5月23日，易县小黄山",
       "activity_time": "具体时间待定",
       "date_category": "saturday",
       "activity_location": "具体地点待定",
@@ -561,10 +566,11 @@
       "contact_phone": "",
       "organizer": "北京野狼户外",
       "activity_type": [
-        "户外徒步"
+        "户外",
+        "徒步"
       ],
-      "ai_score": 0,
-      "ai_reason": "纯户外徒步，与交友无关",
+      "ai_score": 50,
+      "ai_reason": "户外徒步，无筛选信息",
       "_media_id": "wechatarticle_83eb24185d8abb2a771add2f664d17db_9a4877ea716e51c33c92786f5444973c7462816478952586",
       "_source_url": "https://mp.weixin.qq.com/s/OeMpvUgdhd6572hZcLnoxg",
       "global_id": 23
