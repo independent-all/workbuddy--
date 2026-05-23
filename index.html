@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>周末交友战术指挥舱 v7.1 — 周末独立面板 + LLM 严苛清洗</title>
+<title>周末交友战术指挥舱 v7.2 — 联系方式高亮 + 三色硬隔离 + C5蛇形防重叠</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
 /* ============================================================
-   周末交友战术指挥舱 v7.1
-   A区: Master-Detail 图文海报 + 周五/六/日独立Tab
+   周末交友战术指挥舱 v7.2
+   A区: Master-Detail + 超大号联系方式高亮 + 二维码独立渲染
    B区: 大地图 + 编号图钉
-   C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图蛇形轨道
-   三区 global_id 联动
+   C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图时间感知蛇形
+   三区 global_id 联动 | 三色卡片硬隔离
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -199,44 +199,70 @@ body {
 .ad-info-val { font-size: 14px; font-weight: 500; color: #fff; }
 .ad-info-val.large { font-size: 18px; font-weight: 700; }
 
-/* ── 联系方式高亮区 ── */
+/* ── 联系方式高亮区（全新升级：超大字号 + 金色辉光）── */
 .ad-contact-highlight {
-  padding: 14px 16px; background: var(--surface2);
+  padding: 18px 20px; background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(10,14,20,0.95) 100%);
   border-radius: var(--radius); border: 2px solid var(--gold);
-  margin-bottom: 18px;
+  margin-bottom: 18px; position: relative; overflow: hidden;
+}
+.ad-contact-highlight::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(245,158,11,0.15) 0%, transparent 70%);
+  z-index: 0; pointer-events: none;
 }
 .ad-contact-highlight .ad-ch-label {
-  font-size: 9px; color: var(--gold); letter-spacing: 2px;
-  text-transform: uppercase; margin-bottom: 8px;
-  font-weight: 600;
+  position: relative; z-index: 1;
+  font-size: 10px; color: var(--gold); letter-spacing: 3px;
+  text-transform: uppercase; margin-bottom: 14px;
+  font-weight: 700;
 }
 .ad-contact-highlight .ad-ch-row {
-  display: flex; align-items: center; gap: 10px; padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: flex-start; gap: 14px; padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: relative; z-index: 1;
 }
 .ad-contact-highlight .ad-ch-row:last-child { border-bottom: none; }
 .ad-contact-highlight .ad-ch-icon {
-  font-size: 16px; flex-shrink: 0; width: 24px; text-align: center;
+  font-size: 22px; flex-shrink: 0; width: 30px; text-align: center;
+  margin-top: 4px;
 }
 .ad-contact-highlight .ad-ch-val {
-  font-size: 22px; font-weight: 800; color: #fff;
-  letter-spacing: 1px; word-break: break-all;
-  line-height: 1.3;
+  font-size: 36px; font-weight: 900; color: #fbbf24;
+  letter-spacing: 2px; word-break: break-all;
+  line-height: 1.2;
+  text-shadow: 0 0 24px rgba(245,158,11,0.5), 0 2px 4px rgba(0,0,0,0.6);
 }
-.ad-contact-highlight .ad-ch-val.small { font-size: 15px; }
+.ad-contact-highlight .ad-ch-val.wechat-val {
+  font-size: 38px;
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(245,158,11,0.6));
+}
+.ad-contact-highlight .ad-ch-val.phone-val {
+  font-size: 34px;
+  color: #fcd34d;
+  text-shadow: 0 0 20px rgba(245,158,11,0.5), 0 2px 4px rgba(0,0,0,0.5);
+}
+.ad-contact-highlight .ad-ch-val.small { font-size: 18px; color: #fff; text-shadow: none; }
 .ad-contact-highlight .ad-ch-sub {
-  font-size: 10px; color: var(--muted); margin-top: 2px;
+  font-size: 11px; color: var(--muted); margin-bottom: 4px;
+  letter-spacing: 1px; font-weight: 500;
 }
 
-/* 二维码展示 */
+/* 二维码展示（独立渲染在左侧）*/
 .ad-qr-container {
-  display: flex; justify-content: center; margin-top: 12px;
+  display: flex; justify-content: center; margin-top: 16px;
+  position: relative; z-index: 1;
+  padding: 10px; background: rgba(255,255,255,0.03);
+  border-radius: var(--radius); border: 1px dashed rgba(245,158,11,0.3);
 }
 .ad-qr-container img {
-  max-width: 160px; max-height: 160px;
+  max-width: 200px; max-height: 200px;
   border-radius: var(--radius-sm);
-  border: 2px solid var(--border);
-  background: #fff; padding: 4px;
+  border: 3px solid rgba(245,158,11,0.4);
+  background: #fff; padding: 6px;
+  box-shadow: 0 0 20px rgba(245,158,11,0.25);
 }
 
 .ad-essence {
@@ -292,17 +318,31 @@ body {
 .poster-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 1; }
 .poster-card.selected { border-color: var(--accent) !important; box-shadow: 0 0 16px rgba(96,165,250,0.4) !important; }
 
-/* 卡片色彩区分 */
+/* 卡片色彩区分 — 硬隔离 */
 .poster-card.next-week {
-  background: rgba(59,130,246,0.08);
-  border-color: rgba(96,165,250,0.35);
+  background: rgba(59,130,246,0.12) !important;
+  border-color: rgba(96,165,250,0.5) !important;
+  border-style: dashed !important;
+  border-width: 2px !important;
 }
 .poster-card.weekday {
-  background: rgba(34,197,94,0.08);
-  border-color: rgba(34,197,94,0.35);
+  background: rgba(34,197,94,0.12) !important;
+  border-color: rgba(34,197,94,0.5) !important;
+  border-style: dashed !important;
+  border-width: 2px !important;
 }
-.poster-card.next-week:hover { border-color: rgba(96,165,250,0.6); }
-.poster-card.weekday:hover { border-color: rgba(34,197,94,0.55); }
+.poster-card.next-week:hover {
+  border-color: rgba(96,165,250,0.8) !important;
+  background: rgba(59,130,246,0.18) !important;
+}
+.poster-card.weekday:hover {
+  border-color: rgba(34,197,94,0.75) !important;
+  background: rgba(34,197,94,0.18) !important;
+}
+/* 周末卡片保持实线 */
+.poster-card:not(.next-week):not(.weekday) {
+  border-style: solid;
+}
 
 /* Global ID 徽章 */
 .global-id-badge {
@@ -583,8 +623,11 @@ body {
 }
 .gantt-track-label {
   position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
-  font-size: 7px; color: rgba(255,255,255,0.12); z-index: 0;
-  writing-mode: vertical-lr; letter-spacing: 1px;
+  font-size: 8px; color: rgba(255,255,255,0.2); z-index: 0;
+  writing-mode: vertical-lr; letter-spacing: 1px; font-weight: 600;
+}
+#gantt-c5 .gantt-track-label {
+  color: rgba(245,158,11,0.45); font-size: 9px;
 }
 
 /* ── 活动甘特块 ── */
@@ -835,7 +878,7 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ================================================================
-// 周末交友战术指挥舱 v7.1 — 周末独立面板 + LLM 严苛清洗
+// 周末交友战术指挥舱 v7.2 — 联系方式高亮 + 三色硬隔离 + C5蛇形防重叠
 // ================================================================
 
 // ===== 全局变量 =====
@@ -962,8 +1005,17 @@ function getActivityDayLabel(cat) {
 
 // ===== 筛选：next_week 和 weekday 只在 All 中显示，周五/六/日独立面板各自精确匹配 =====
 function getActivitiesByDay(filter) {
-  if (filter === 'all') return allActivities;
-  return allActivities.filter(act => getActivityDayKey(act) === filter);
+  if (filter === 'all') {
+    // All 模式：显示全部活动
+    return allActivities;
+  }
+  // 精确匹配：非 All 模式只返回完全匹配的日期类别
+  return allActivities.filter(act => {
+    const dk = getActivityDayKey(act);
+    // 硬守卫：非 all 模式下绝对排除 next_week 和 weekday
+    if (dk === 'next_week' || dk === 'weekday') return false;
+    return dk === filter;
+  });
 }
 
 function getActivityCountByDay(dayKey) {
@@ -1260,10 +1312,10 @@ function renderDetailPanel(act) {
       contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">📝</span><div><span class="ad-ch-val small">${act.registration}</span></div></div>`;
     }
     if (act.contact_wechat) {
-      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">💬</span><div><span class="ad-ch-sub">微信号</span><br><span class="ad-ch-val">${act.contact_wechat}</span></div></div>`;
+      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">💬</span><div><span class="ad-ch-sub">微信号</span><br><span class="ad-ch-val wechat-val">${act.contact_wechat}</span></div></div>`;
     }
     if (act.contact_phone) {
-      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">📱</span><div><span class="ad-ch-sub">电话</span><br><span class="ad-ch-val">${act.contact_phone}</span></div></div>`;
+      contactHtml += `<div class="ad-ch-row"><span class="ad-ch-icon">📱</span><div><span class="ad-ch-sub">电话</span><br><span class="ad-ch-val phone-val">${act.contact_phone}</span></div></div>`;
     }
     // 二维码
     if (act.qr_url) {
@@ -1487,31 +1539,27 @@ function renderC4Weather(filter) {
 /* ── C4 工作日看板 ── */
 function renderC4WeekdayBoard() {
   const board = document.getElementById('c4-weekday-board');
-  let wdActs = getActivitiesForDateCat('weekday');
-  // 也加入 next_week
-  const nwActs = getActivitiesForDateCat('next_week');
-  const allExtra = [...wdActs, ...nwActs];
+  // 仅渲染 weekday（工作日）活动，next_week（下周）不在其中
+  const wdActs = getActivitiesForDateCat('weekday');
 
   // 移除旧项目
   board.querySelectorAll('.c4wb-item').forEach(el => el.remove());
   const emptyEl = document.getElementById('c4wb-empty');
-  if (emptyEl) emptyEl.style.display = allExtra.length ? 'none' : 'block';
+  if (emptyEl) emptyEl.style.display = wdActs.length ? 'none' : 'block';
 
-  if (!allExtra.length) return;
+  if (!wdActs.length) return;
 
-  allExtra.forEach(act => {
+  wdActs.forEach(act => {
     const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
     const times = parseActivityTimes(act);
     const timeStr = times.start ? times.start.slice(11,16) : '—';
     const name = (act.activity_title||act.title||'').substring(0,16);
-    const dk = getActivityDayKey(act);
-    const dotColor = dk === 'next_week' ? '#60a5fa' : '#22c55e';
 
     const item = document.createElement('div');
     item.className = 'c4wb-item';
     item.dataset.globalId = gidNum;
     item.innerHTML = `
-      <div class="c4wb-time" style="color:${dotColor}">${timeStr} ${dk==='next_week'?'🔵':'🟢'}</div>
+      <div class="c4wb-time">${timeStr} 🟢</div>
       <div class="c4wb-name">${name}</div>
     `;
     item.addEventListener('click', function() {
@@ -1570,35 +1618,49 @@ function renderGanttChart(filter) {
     return;
   }
 
-  // 蛇形轨道分配：C2 → C3 → C5 → C3 → C2
-  const trackMap = {};
+  // 蛇形轨道分配（时间感知）：C2 → C3 → C5 蛇形排列，同轨杜绝时间重叠
+  const SNAKE_ORDER = ['gantt-c2', 'gantt-c3', 'gantt-c5', 'gantt-c3', 'gantt-c2'];
+  const trackAssignments = { 'gantt-c2': [], 'gantt-c3': [], 'gantt-c5': [] };
+
   activities.forEach((act, idx) => {
-    const patternIdx = idx % GANTT_TRACK_ORDER.length;
-    const trackId = GANTT_TRACK_ORDER[patternIdx];
-    if (!trackMap[trackId]) trackMap[trackId] = [];
-    trackMap[trackId].push({ act, idx });
+    const times = parseActivityTimes(act);
+    const sMin = times.start ? timeToMin(times.start) : GANTT_START_HOUR * 60;
+    const eMin = times.end ? timeToMin(times.end) : GANTT_START_HOUR * 60 + 60;
+
+    let assigned = false;
+    for (const tid of SNAKE_ORDER) {
+      const hasOverlap = trackAssignments[tid].some(existing => {
+        return sMin < existing.eMin && eMin > existing.sMin;
+      });
+      if (!hasOverlap) {
+        trackAssignments[tid].push({ act, idx, sMin, eMin });
+        assigned = true;
+        break;
+      }
+    }
+    // 所有轨道都冲突时，强制放入 C5（容错降级）
+    if (!assigned) {
+      trackAssignments['gantt-c5'].push({ act, idx, sMin, eMin });
+    }
   });
 
   // 渲染所有轨道
   const trackElMap = { 'gantt-c2': c2Track, 'gantt-c3': c3Track, 'gantt-c5': c5Track };
 
-  Object.keys(trackMap).forEach(trackId => {
+  Object.keys(trackAssignments).forEach(trackId => {
     const trackEl = trackElMap[trackId];
     if (!trackEl) return;
 
-    trackMap[trackId].forEach(({ act, idx }) => {
+    trackAssignments[trackId].forEach(({ act, idx, sMin, eMin }) => {
       const gidNum = parseInt((act.global_id||'0').replace(/\D/g,'')) || 0;
       const tone = (act.activity_type||[]).some(t => t.includes('派对') || t.includes('酒会')) ? 'warm' : 'cold';
       const times = parseActivityTimes(act);
-      let leftPct = 0, widthPct = 8;
-      if (times.start && times.end) {
-        const sMin = timeToMin(times.start);
-        const eMin = timeToMin(times.end);
-        const cs = Math.max(sMin, GANTT_START_HOUR*60);
-        const ce = Math.min(eMin, GANTT_END_HOUR*60);
-        leftPct = minToPct(cs);
-        widthPct = Math.max(2, minToPct(ce) - leftPct);
-      }
+
+      // 使用预计算的 sMin/eMin（已通过时间感知蛇形分配）
+      const cs = Math.max(sMin, GANTT_START_HOUR * 60);
+      const ce = Math.min(eMin, GANTT_END_HOUR * 60);
+      const leftPct = minToPct(cs);
+      const widthPct = Math.max(3, minToPct(ce) - leftPct);
 
       const block = document.createElement('div');
       block.className = `gantt-block ${tone}`;
