@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>周末交友战术指挥舱 v7.0 — 深度重构版</title>
+<title>周末交友战术指挥舱 v7.1 — 周末独立面板 + LLM 严苛清洗</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
 /* ============================================================
-   周末交友战术指挥舱 v7.0
-   A区: Master-Detail 图文海报 + 全局筛选 + 联系方式高亮
+   周末交友战术指挥舱 v7.1
+   A区: Master-Detail 图文海报 + 周五/六/日独立Tab
    B区: 大地图 + 编号图钉
    C区: C4冲突/看板/气象(80/10/10) + C2/C3/C5甘特图蛇形轨道
    三区 global_id 联动
@@ -752,9 +752,9 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
   <div class="zone-a">
     <div class="filter-bar" id="filter-bar">
       <button class="filter-btn active" data-day="all">全部(含工作日)<span class="fc-badge" id="fc-all">0</span></button>
-      <button class="filter-btn" data-day="friday">周五<span class="fc-badge" id="fc-fri">0</span></button>
-      <button class="filter-btn" data-day="saturday">周六<span class="fc-badge" id="fc-sat">0</span></button>
-      <button class="filter-btn" data-day="sunday">周日<span class="fc-badge" id="fc-sun">0</span></button>
+      <button class="filter-btn" data-day="friday">周五<span class="fc-badge" id="fc-friday">0</span></button>
+      <button class="filter-btn" data-day="saturday">周六<span class="fc-badge" id="fc-saturday">0</span></button>
+      <button class="filter-btn" data-day="sunday">周日<span class="fc-badge" id="fc-sunday">0</span></button>
     </div>
     <div class="stats-ribbon" id="stats-ribbon"></div>
 
@@ -835,7 +835,7 @@ body.mobile-mode .map-legend { font-size: 8px; padding: 4px 8px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ================================================================
-// 周末交友战术指挥舱 v7.0 — 深度重构版
+// 周末交友战术指挥舱 v7.1 — 周末独立面板 + LLM 严苛清洗
 // ================================================================
 
 // ===== 全局变量 =====
@@ -851,7 +851,7 @@ let isMobileMode = false;
 // ===== 常量 =====
 const ORIGIN = { address: '北京市朝阳区南平里', lat: 39.98, lng: 116.48 };
 const DAY_LABELS = { friday:'周五', saturday:'周六', sunday:'周日' };
-const DAY_LABELS_FULL = { all:'全局 · 全部活动', friday:'周五', saturday:'周六', sunday:'周日' };
+const DAY_LABELS_FULL = { all:'全局 · 全部活动', friday:'周五 · 周末首日', saturday:'周六 · 周末核心', sunday:'周日 · 周末收官' };
 const TONE_LABELS = { cold:'🔵 严肃', warm:'🟠 轻松', neutral:'⚪ 中性' };
 const GANTT_START_HOUR = 8;
 const GANTT_END_HOUR = 24;
@@ -861,10 +861,10 @@ const GANTT_TRACK_ORDER = ['gantt-c2', 'gantt-c3', 'gantt-c5', 'gantt-c3', 'gant
 
 // ===== Mock 气象限行 =====
 const WEATHER_DATA = {
-  friday:   { icon: '☀️', desc: '晴', temp: '22℃ ~ 32℃', limit: '4 和 9', limitLabel: '限行尾号' },
-  saturday: { icon: '⛅', desc: '多云', temp: '20℃ ~ 30℃', limit: null, limitLabel: '周末不限行' },
-  sunday:   { icon: '🌤️', desc: '晴转多云', temp: '21℃ ~ 31℃', limit: null, limitLabel: '周末不限行' },
-  all:      { icon: '🗓️', desc: '周末天气', temp: '20℃ ~ 32℃', limit: null, limitLabel: '请选日期' },
+  friday:   { icon: '🌅', desc: '周五多云', temp: '18℃ ~ 28℃', limit: null, limitLabel: '周五不限行' },
+  saturday: { icon: '⛅', desc: '周六多云转晴', temp: '20℃ ~ 32℃', limit: null, limitLabel: '周末不限行' },
+  sunday:   { icon: '☀️', desc: '周日晴', temp: '21℃ ~ 33℃', limit: null, limitLabel: '周末不限行' },
+  all:      { icon: '🗓️', desc: '本周天气', temp: '18℃ ~ 33℃', limit: null, limitLabel: '请选日期' },
 };
 
 // ===== 加载真实数据 =====
@@ -925,37 +925,45 @@ function parseActivityTimes(act) {
   return { start: '', end: '' };
 }
 
-// ===== 时间分类：使用 date_category 字段 =====
+// ===== 时间分类：优先使用后端 date_category 字段（friday/saturday/sunday/weekday/next_week）=====
 function getActivityDayKey(act) {
   const cat = act.date_category || 'unknown';
+  // 新版后端输出：friday / saturday / sunday / weekday / next_week
   if (cat === 'friday') return 'friday';
   if (cat === 'saturday') return 'saturday';
   if (cat === 'sunday') return 'sunday';
-  if (cat === 'next_week') return 'next_week';
   if (cat === 'weekday') return 'weekday';
-  // fallback：旧数据无 date_category
-  const raw = (act.activity_time || '') + ' ' + (act.activity_location || '');
-  if (raw.includes('05月22日') || raw.includes('5.22') || raw.includes('周五')) return 'friday';
-  if (raw.includes('05月23日') || raw.includes('5.23') || raw.includes('周六')) return 'saturday';
-  if (raw.includes('05月24日') || raw.includes('5.24') || raw.includes('周日')) return 'sunday';
-  if (raw.includes('05月30日') || raw.includes('5.30')) return 'next_week';
+  if (cat === 'next_week') return 'next_week';
+  // 兼容旧版后端输出（weekend 笼统标签 → 从文本推断具体天）
+  if (cat === 'weekend') {
+    const raw = (act.activity_time || '') + ' ' + (act.activity_title || '');
+    if (raw.includes('周五')) return 'friday';
+    if (raw.includes('周六')) return 'saturday';
+    if (raw.includes('周日')) return 'sunday';
+    return 'friday'; // 无法判断，默认归周五
+  }
+  // fallback：从活动时间文本推断
+  const raw = (act.activity_time || '') + ' ' + (act.activity_title || '');
+  if (raw.includes('周五') || raw.match(/05月2[2-4]日/)) return 'friday';
+  if (raw.includes('周六') || raw.match(/05月2[3-5]日/)) return 'saturday';
+  if (raw.includes('周日') || raw.match(/05月2[4-6]日/)) return 'sunday';
+  if (raw.includes('05月30日') || raw.includes('下周')) return 'next_week';
   return 'unknown';
 }
 
 function getActivityDayLabel(cat) {
-  const map = { friday:'周五', saturday:'周六', sunday:'周日', weekday:'工作日', next_week:'下周', unknown:'未知' };
+  const map = {
+    friday: '周五', saturday: '周六', sunday: '周日',
+    weekday: '工作日', next_week: '下周', weekend: '本周末',
+    unknown: '未知'
+  };
   return map[cat] || cat;
 }
 
-// ===== 筛选：next_week 和 weekday 只在 All 中显示 =====
+// ===== 筛选：next_week 和 weekday 只在 All 中显示，周五/六/日独立面板各自精确匹配 =====
 function getActivitiesByDay(filter) {
   if (filter === 'all') return allActivities;
-
-  // 周五/周六/周日 Tab：排除 next_week 和 weekday
-  return allActivities.filter(act => {
-    const dk = getActivityDayKey(act);
-    return dk === filter;
-  });
+  return allActivities.filter(act => getActivityDayKey(act) === filter);
 }
 
 function getActivityCountByDay(dayKey) {
@@ -1044,9 +1052,10 @@ function setupFilterTabs() {
     });
   });
   document.getElementById('fc-all').textContent = allActivities.length;
-  document.getElementById('fc-fri').textContent = getActivityCountByDay('friday');
-  document.getElementById('fc-sat').textContent = getActivityCountByDay('saturday');
-  document.getElementById('fc-sun').textContent = getActivityCountByDay('sunday');
+  ['friday','saturday','sunday'].forEach(d => {
+    const el = document.getElementById('fc-' + d);
+    if (el) el.textContent = getActivityCountByDay(d);
+  });
 }
 
 function applyFilter(filter) {
@@ -1185,7 +1194,7 @@ function renderPosterCard(a) {
 
   const title = (a.activity_title||a.title||'未命名活动').substring(0,30);
   const loc = (a.activity_location||'—').substring(0,20);
-  const dateCatLabel = dk === 'weekday' ? '📅工作日' : (dk === 'next_week' ? '📅下周' : '');
+  const dateCatLabel = dk === 'weekday' ? '📅工作日' : (dk === 'next_week' ? '📅下周' : (dk === 'friday' ? '📅周五' : (dk === 'saturday' ? '📅周六' : (dk === 'sunday' ? '📅周日' : ''))));
   const organizerStr = a.organizer ? ' | ' + a.organizer : '';
 
   return `
@@ -1238,6 +1247,9 @@ function renderDetailPanel(act) {
   let dateCatTag = '';
   if (dk === 'next_week') dateCatTag = '<span class="ad-tone-tag next-week" style="margin-left:6px;">🔵 下周活动</span>';
   else if (dk === 'weekday') dateCatTag = '<span class="ad-tone-tag weekday" style="margin-left:6px;">🟢 工作日</span>';
+  else if (dk === 'friday') dateCatTag = '<span class="ad-tone-tag cold" style="margin-left:6px;">🌅 周五活动</span>';
+  else if (dk === 'saturday') dateCatTag = '<span class="ad-tone-tag warm" style="margin-left:6px;">🔥 周六活动</span>';
+  else if (dk === 'sunday') dateCatTag = '<span class="ad-tone-tag cold" style="margin-left:6px;">☀️ 周日活动</span>';
 
   // ---- 联系方式高亮区（核心）----
   let contactHtml = '';

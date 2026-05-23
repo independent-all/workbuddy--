@@ -1,6 +1,6 @@
 """
 ============================================================================
- main.py — 周末约会战术指挥中心 · 总控入口 (v2.0 去重+时间分流版)
+ main.py — 周末约会战术指挥中心 · 总控入口 (v2.2 周末独立面板版)
 ============================================================================
  流程:
    Step 0: 环境自检（Playwright / EasyOCR / IMA 凭证）
@@ -27,7 +27,7 @@ PROJECT_ROOT = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
 
 from ima_sync import IMASyncEngine, DATING_KD_ID
-from data_pipeline import DataPipeline
+from data_pipeline import DataPipeline, check_llm_deps, _load_llm_config
 
 logger = logging.getLogger(__name__)
 
@@ -151,29 +151,34 @@ def classify_date_category(activity: dict, week_monday: datetime,
     except ValueError:
         return 'unknown'
 
-    # 分类
+        # 分类
     if activity_date >= next_monday:
         return 'next_week'
     elif activity_date < week_monday:
-        # 过去的日期，但可能在最近（上周末等）
-        # 宽容处理：如果在上个周末，仍然按星期几分
+        # 过去的日期，宽容处理：根据具体周几分配
         prev_weekday = activity_date.weekday()
-        if prev_weekday >= 4:  # Fri-Sun
-            return _dayname_to_category(prev_weekday)
+        if prev_weekday == 4:
+            return 'friday'
+        elif prev_weekday == 5:
+            return 'saturday'
+        elif prev_weekday == 6:
+            return 'sunday'
         return 'weekday'  # 过去的周一到周四也归为 weekday
     else:
         # 在本周 [monday, next_monday)
         wd = activity_date.weekday()
-        if wd >= 5:  # Sat=5, Sun=6
-            return _dayname_to_category(wd)
-        elif wd == 4:  # Friday
+        if wd == 4:      # Friday
             return 'friday'
-        else:  # Mon-Thu
+        elif wd == 5:    # Saturday
+            return 'saturday'
+        elif wd == 6:    # Sunday
+            return 'sunday'
+        else:            # Mon=0~Thu=3
             return 'weekday'
 
 
 def _dayname_to_category(weekday_num: int) -> str:
-    """将 Python weekday (0=Mon) 映射到类别名"""
+    """将 Python weekday (0=Mon) 映射到细粒度日期标签（周五/六/日独立）"""
     mapping = {0: 'weekday', 1: 'weekday', 2: 'weekday', 3: 'weekday',
                4: 'friday', 5: 'saturday', 6: 'sunday'}
     return mapping.get(weekday_num, 'unknown')
@@ -336,6 +341,13 @@ def main(
         logger.error("环境未就绪，请运行 auto_deploy.bat 安装依赖")
         sys.exit(1)
 
+    # LLM 状态（可选，不阻断流程）
+    llm_cfg = _load_llm_config()
+    if check_llm_deps() and llm_cfg.get('api_key'):
+        logger.info(f"  ✅ llm [{llm_cfg['model']} @ {llm_cfg['base_url']}]")
+    else:
+        logger.info("  ⚠️  llm [未配置，使用正则引擎 fallback]")
+
     # ---- Step 1: IMA 同步 ----
     logger.info(f"Step 1: 从 IMA 知识库「{kb_name}」拉取内容...")
     engine = IMASyncEngine(kb_id=kb_id, kb_name=kb_name, output_dir=OUTPUT_DIR)
@@ -366,7 +378,8 @@ def main(
         if record.parsed_data:
             entry.update(record.parsed_data)
         elif record.raw_text:
-            entry.update(pipeline.parse(record.raw_text))
+            # 传入 title_hint 帮助 LLM 更好地理解活动背景
+            entry.update(pipeline.parse(record.raw_text, title_hint=record.title))
 
         # 确保 contact 字段存在（提取联系方式）
         raw = record.raw_text or ''
