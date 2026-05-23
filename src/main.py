@@ -13,7 +13,6 @@
 ============================================================================
 """
 
-import os
 import sys
 import json
 import re
@@ -30,6 +29,7 @@ sys.path.insert(0, str(SRC_DIR))
 
 from ima_sync import IMASyncEngine, DATING_KD_ID
 from extractor import Extractor
+from parser import _load_llm_config
 
 logger = logging.getLogger(__name__)
 
@@ -232,30 +232,8 @@ def check_environment() -> dict:
 # ===========================================================================
 
 def _load_llm_cfg() -> dict:
-    """从环境变量或配置文件加载 LLM 凭证"""
-    cfg = {
-        'api_key': os.environ.get('OPENAI_API_KEY', ''),
-        'base_url': os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
-        'model': os.environ.get('LLM_MODEL', 'gpt-4o'),
-    }
-    # 尝试从项目级 .env 文件加载
-    env_file = PROJECT_ROOT / '.env'
-    if env_file.exists():
-        with open(env_file, encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                if '=' in line:
-                    k, v = line.split('=', 1)
-                    k, v = k.strip(), v.strip().strip('"').strip("'")
-                    if k == 'OPENAI_API_KEY':
-                        cfg['api_key'] = v
-                    elif k == 'OPENAI_BASE_URL':
-                        cfg['base_url'] = v
-                    elif k == 'LLM_MODEL':
-                        cfg['model'] = v
-    return cfg
+    """从配置文件或环境变量加载 LLM 凭证（复用 parser 的配置加载）"""
+    return _load_llm_config()
 
 
 # ===========================================================================
