@@ -793,7 +793,6 @@ class DataPipeline:
                 logger.warning(f"  ⚠️ cost 含微信号 '{cost}'，已迁移到 contact_wechat + 覆写")
             # 第4关：字符数超限（>10字符）== 几乎不可能是正常费用（手机号11位）
             elif len(cost) > 10:
-            elif len(cost) > 5:
                 result['cost'] = '详见详情'
                 overridden = True
                 logger.warning(f"  ⚠️ cost 超长({len(cost)}字) '{cost}'，已覆写为'详见详情'")
