@@ -40,31 +40,8 @@ ARCHIVE_DIR = OUTPUT_DIR  # 历史副本保留在 output/ 方便 gitignore
 
 
 # ===========================================================================
-# 日期提取与分类（保持 v2.4 逻辑不变）
+# 周范围计算（仅用于 meta.week_range 元数据）
 # ===========================================================================
-
-DATE_PATTERNS = [
-    re.compile(r'(\d{1,2})月(\d{1,2})日?'),
-    re.compile(r'(\d{1,2})\.(\d{1,2})'),
-    re.compile(r'(\d{1,2})/(\d{1,2})'),
-]
-
-WEEKDAY_CN = {'一': 0, '二': 1, '三': 2, '四': 3, '五': 4, '六': 5, '日': 6}
-WEEKDAY_PATTERN = re.compile(r'周([一二三四五六日])')
-
-
-def _extract_date(text: str) -> Optional[Tuple[int, int]]:
-    if not text:
-        return None
-    for pat in DATE_PATTERNS:
-        matches = pat.findall(text)
-        if matches:
-            for m in matches:
-                month, day = int(m[0]), int(m[1])
-                if 1 <= month <= 12 and 1 <= day <= 31:
-                    return (month, day)
-    return None
-
 
 def get_week_range(reference_date: datetime = None) -> Tuple[datetime, datetime]:
     ref = reference_date or datetime.now()
@@ -74,58 +51,22 @@ def get_week_range(reference_date: datetime = None) -> Tuple[datetime, datetime]
     return monday, next_monday
 
 
-def classify_date_category(activity: dict, week_monday: datetime,
-                           next_monday: datetime, year: int = 2026) -> str:
-    time_text = activity.get('activity_time', '') or ''
-    title = activity.get('activity_title', '') or activity.get('title', '') or ''
-    summary = activity.get('summary', '') or ''
-    combined = f"{time_text} {title} {summary}"
+# ===========================================================================
+# 日期提取（仅用于去重 key 计算）
+# ===========================================================================
 
-    date_tuple = _extract_date(combined)
-    if not date_tuple:
-        wm = WEEKDAY_PATTERN.search(combined)
-        if wm:
-            wd_cn = wm.group(1)
-            wd_num = WEEKDAY_CN.get(wd_cn)
-            if wd_num is not None:
-                target = week_monday + timedelta(days=wd_num)
-                if target < next_monday:
-                    return _dayname_to_category(wd_num)
-        return 'unknown'
-
-    month, day = date_tuple
-    try:
-        activity_date = datetime(year, month, day)
-    except ValueError:
-        return 'unknown'
-
-    if activity_date >= next_monday:
-        return 'next_week'
-    elif activity_date < week_monday:
-        prev_weekday = activity_date.weekday()
-        if prev_weekday == 4:
-            return 'friday'
-        elif prev_weekday == 5:
-            return 'saturday'
-        elif prev_weekday == 6:
-            return 'sunday'
-        return 'weekday'
-    else:
-        wd = activity_date.weekday()
-        if wd == 4:
-            return 'friday'
-        elif wd == 5:
-            return 'saturday'
-        elif wd == 6:
-            return 'sunday'
-        else:
-            return 'weekday'
+_DATE_PATTERN = re.compile(r'(\d{1,2})月(\d{1,2})日?')
 
 
-def _dayname_to_category(weekday_num: int) -> str:
-    mapping = {0: 'weekday', 1: 'weekday', 2: 'weekday', 3: 'weekday',
-               4: 'friday', 5: 'saturday', 6: 'sunday'}
-    return mapping.get(weekday_num, 'unknown')
+def _extract_date(text: str) -> Optional[Tuple[int, int]]:
+    if not text:
+        return None
+    m = _DATE_PATTERN.search(text)
+    if m:
+        month, day = int(m.group(1)), int(m.group(2))
+        if 1 <= month <= 12 and 1 <= day <= 31:
+            return (month, day)
+    return None
 
 
 # ===========================================================================
@@ -237,6 +178,88 @@ def _load_llm_cfg() -> dict:
 
 
 # ===========================================================================
+# AI 战术简报生成
+# ===========================================================================
+
+TACTICAL_PROMPT = """你是极度冷酷、高效的周末战术规划师。根据输入的高优活动列表，用 Markdown 格式输出一段不超过 100 字的建议。
+
+要求:
+1. 直接给出本周末最值得参加的 1-2 场活动。
+2. 每场附带一条冷酷的理由（不超过 15 字）。
+3. 绝不废话，不需要问候语、总结语、祝福语。
+4. 格式示例:
+**周六** · 硬核剧本杀 — 8人精品局，95分
+**周日** · 80后优质相亲 — 同龄人筛选严格，72分"""
+
+
+def _generate_tactical_briefing(activities: List[dict], llm_cfg: dict) -> str:
+    """过滤高优活动，调用 LLM 生成战术简报"""
+    high_score = [a for a in activities if a.get('ai_score', 0) >= 75]
+    if not high_score:
+        logger.info("  没有 ai_score ≥ 75 的高优活动，跳过简报生成")
+        return ""
+
+    api_key = llm_cfg.get('api_key', '')
+    if not api_key:
+        logger.warning("  无 LLM 凭证，跳过简报生成")
+        return ""
+
+    # 按 ai_score 降序排列，取前 8 条
+    high_score.sort(key=lambda a: a.get('ai_score', 0), reverse=True)
+    top = high_score[:8]
+
+    # 组装活动摘要
+    lines = []
+    for a in top:
+        cat = a.get('date_category', 'unknown')
+        title = a.get('activity_title', '(无标题)')
+        score = a.get('ai_score', 0)
+        reason = a.get('ai_reason', '')
+        time_str = a.get('activity_time', '')[:20]
+        lines.append(f"- [{cat}] {title} | {time_str} | ai_score={score} | {reason}")
+    activity_text = "\n".join(lines)
+
+    try:
+        from openai import OpenAI
+    except ImportError:
+        logger.warning("  openai 库不可用，跳过简报生成")
+        return ""
+
+    client = OpenAI(
+        api_key=api_key,
+        base_url=llm_cfg.get('base_url', 'https://api.openai.com/v1'),
+        timeout=25.0,
+        max_retries=0,
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model=llm_cfg.get('model', 'deepseek-chat'),
+            messages=[
+                {"role": "system", "content": TACTICAL_PROMPT},
+                {"role": "user", "content": f"高优活动列表:\n{activity_text}"},
+            ],
+            temperature=0.3,
+            max_tokens=300,
+        )
+        briefing = (response.choices[0].message.content or '').strip()
+        # 截断到 120 字（留余量）
+        if len(briefing) > 120:
+            # 在最后一个完整句号处截断
+            cutoff = briefing[:120].rfind('。')
+            if cutoff < 20:
+                cutoff = briefing[:120].rfind('\n')
+            if cutoff > 20:
+                briefing = briefing[:cutoff + 1]
+            else:
+                briefing = briefing[:120]
+        return briefing
+    except Exception as e:
+        logger.warning(f"  战术简报生成失败: {e}")
+        return ""
+
+
+# ===========================================================================
 # 主流程 (v3.0 三层管道)
 # ===========================================================================
 
@@ -309,7 +332,7 @@ def main(
     logger.info(f"  校验完成: {len(activities)} 条合法活动 "
                 f"(降级 {len(error_log.entries)} 个字段)")
 
-    # ---- Step 4: 智能去重 + 时间分流 ----
+    # ---- Step 4: 智能去重（信任 LLM 的 date_category） ----
     logger.info("Step 4a: 智能去重（地点+日期+主办方）...")
 
     # 分配临时 global_id 供去重使用
@@ -318,17 +341,27 @@ def main(
 
     activities = deduplicate_activities(activities)
 
-    logger.info("Step 4b: 时间分流标签计算...")
+    # 统计 LLM 分类结果
+    logger.info("Step 4b: 时间分流统计（由 LLM date_category 驱动）...")
     week_monday, next_monday = get_week_range()
     logger.info(f"  本周范围: {week_monday.strftime('%m/%d')} ~ {next_monday.strftime('%m/%d')}")
 
     date_cat_counts: Dict[str, int] = {}
     for act in activities:
-        cat = classify_date_category(act, week_monday, next_monday)
+        cat = act.get('date_category', 'unknown')
+        if cat not in ('friday', 'saturday', 'sunday', 'weekday', 'next_week'):
+            cat = 'unknown'
         act['date_category'] = cat
         date_cat_counts[cat] = date_cat_counts.get(cat, 0) + 1
 
     logger.info(f"  时间分流结果: {date_cat_counts}")
+
+    # ---- Step 4c: AI 战术简报（ai_score ≥ 75 高优活动） ----
+    briefing = _generate_tactical_briefing(activities, llm_cfg)
+    if briefing:
+        logger.info(f"  ✅ 战术简报已生成 ({len(briefing)} 字)")
+    else:
+        logger.info("  ⚠️ 无可生成简报的高优活动")
 
     # ---- Step 5: 生成最终输出 ----
     logger.info("Step 5: 生成 week_schedule.json...")
@@ -339,9 +372,10 @@ def main(
             'source': f'IMA 知识库: {kb_name}',
             'kb_id': kb_id,
             'total_items': len(activities),
-            'pipeline_version': 'v3.0',
+            'pipeline_version': 'v3.1',
             'field_degradations': len(error_log.entries),
             'date_categories': date_cat_counts,
+            'tactical_briefing': briefing or '',
             'week_range': {
                 'monday': week_monday.strftime('%Y-%m-%d'),
                 'next_monday': next_monday.strftime('%Y-%m-%d'),
@@ -436,7 +470,7 @@ def _print_final_summary(output: dict, error_log=None):
     degradations = meta.get('field_degradations', 0)
 
     print("\n" + "=" * 60)
-    print(f"  🎯 周末约会战术指挥中心 — v3.0 模块化管道")
+    print(f"  🎯 周末约会战术指挥中心 — v3.1 模块化管道")
     print("=" * 60)
     print(f"  📊 总活动数:     {meta['total_items']}")
     print(f"  🔗 去重合并:     {dedup_total} 条")
@@ -444,13 +478,19 @@ def _print_final_summary(output: dict, error_log=None):
     print(f"  📁 输出文件:     {FINAL_OUTPUT}")
     print(f"  📋 降级日志:     {ERROR_LOG}")
     print("-" * 60)
-    print(f"  🏷️  时间分流:")
+    print(f"  🏷️  时间分流 (LLM 驱动):")
     for cat, cnt in sorted(meta.get('date_categories', {}).items()):
         print(f"     {cat}: {cnt} 个")
     print("-" * 60)
     print(f"  🏷️  活动类型分布:")
     for t, c in sorted(type_counts.items(), key=lambda x: -x[1]):
         print(f"     {t}: {c} 个")
+    # 战术简报
+    briefing = meta.get('tactical_briefing', '')
+    if briefing:
+        print("=" * 60)
+        print(f"  🎯 AI 战术简报:")
+        print(f"  {briefing}")
     print("=" * 60)
 
 
